@@ -325,9 +325,6 @@ This is the **LuxWall Enthermal™ Product Configurator** — a technical sales 
 - Run `git commit -m "<summarize features added, bugs fixed, or changes made>"`
 - Run `git push`
 
-### Before making major refactors or risky changes:
-- First run `git add .` and `git commit -m "save point before <description>"` to create a restore point
-
 ### Commit message style:
 - Keep messages short and descriptive
 - List specific features or fixes, e.g. "Added spandrel toggle, fixed U-value rounding bug"
