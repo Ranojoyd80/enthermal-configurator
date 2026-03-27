@@ -316,3 +316,19 @@ This is the **LuxWall Enthermal™ Product Configurator** — a technical sales 
 2. If the response is truncated, run `get_metadata` to get the full node map, then re-fetch specific child nodes with `get_design_context`.
 3. Never skip to implementation before reading both the code output and the screenshot.
 4. Always implement pixel-level diffs — do not judge any difference as "not worth changing".
+
+
+## Git Workflow
+
+### After completing changes:
+- Run `git add .`
+- Run `git commit -m "<summarize features added, bugs fixed, or changes made>"`
+- Run `git push`
+
+### Before making major refactors or risky changes:
+- First run `git add .` and `git commit -m "save point before <description>"` to create a restore point
+
+### Commit message style:
+- Keep messages short and descriptive
+- List specific features or fixes, e.g. "Added spandrel toggle, fixed U-value rounding bug"
+- Do not use generic messages like "updated file" or "made changes"

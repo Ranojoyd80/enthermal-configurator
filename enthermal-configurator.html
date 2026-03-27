@@ -286,20 +286,20 @@ body{font-family:var(--font-body);background:var(--lw-gray-50);color:var(--lw-da
       <div class="results-grid-metrics-left">
         <div class="metric-card" style="position:relative;padding:15px 17px 11px;display:flex;gap:0">
           <div style="flex:1;text-align:left;padding-right:12px">
-            <div class="metric-label">U-Value</div>
+            <div class="metric-label">U-value</div>
             <div class="metric-value" id="metricU">—</div>
             <div class="metric-unit">W/m²·K</div>
           </div>
           <div style="flex-shrink:0;display:flex;padding:1px 0"><div style="width:1px;background:var(--lw-gray-200)"></div></div>
           <div id="uFactorSection" style="flex:1;text-align:right;padding-left:12px">
-            <div class="metric-label">U-Factor</div>
+            <div class="metric-label">U-factor</div>
             <div class="metric-value" id="metricUIP">—</div>
             <div class="metric-unit">Btu/hr·ft²·°F</div>
           </div>
         </div>
         <div class="metric-card" style="position:relative;padding:15px 17px 11px;display:flex;gap:0">
           <div id="rValueSection" style="flex:1;text-align:left;padding-right:12px">
-            <div class="metric-label">R-Value</div>
+            <div class="metric-label">R-value</div>
             <div class="metric-value" id="metricR">—</div>
             <div class="metric-unit">Insulation</div>
           </div>
@@ -877,7 +877,7 @@ plusVigCoatingEl.addEventListener('change',updatePlusSurfaces);
     toggle.style.setProperty('--thumb-offset',(isCEN?optCEN.offsetLeft-2:0)+'px');
     optISO.classList.toggle('active',!isCEN);
     optCEN.classList.toggle('active',isCEN);
-    // U-Factor and R-Value: refresh to show — in CEN or actual values in NFRC
+    // U-factor and R-value: refresh to show — in CEN or actual values in NFRC
     var isPlus=document.getElementById('configEnthPlus').style.display!=='none';
     if(isPlus){updatePlusResults()}else{updateResults()}
     // Relabel SHGC → g-Factor
