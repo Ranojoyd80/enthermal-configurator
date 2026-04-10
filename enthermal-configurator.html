@@ -466,8 +466,77 @@ body{font-family:var(--font-body);background:var(--lw-gray-50);color:var(--lw-da
   </div>
 </div>
 <script>
-const DATA = [
-  {"outerGlass":"Clear 4mm","coating":"Cardinal LoĒ²-272®","innerGlass":"Clear 4mm","thickness":8.05,"uval":0.3752,"uvalIP":0.0661,"rval":15.13,"shgc":0.4004,"tvis":0.7146,"routVis":0.1074,"tdwISO":0.5431,"tuv":0.1576,"extL":39.14,"extA":-0.81,"extB":-2.23,"intL":87.65,"intA":-2.54,"intB":2.55},
+// ── Data loaded from external JSON ──
+let DATA = [], DATA_PLUS_IN = [], DATA_PLUS_OUT = [];
+let dataLoaded = false;
+
+function parseThickness(liteName) {
+  var m = liteName.match(/(\d+)\s*mm/);
+  return m ? m[1] + 'mm' : null;
+}
+function parseColorName(liteName) {
+  return liteName.replace(/\s*\d+\s*mm\s*$/, '').trim() || liteName;
+}
+
+// Manufacturer lookup for coating dropdown display
+const MANUFACTURERS = {
+  'LoE 180': 'Cardinal',
+  'LoE² 270': 'Cardinal', 'LoE² 272': 'Cardinal',
+  'LoE³ 340': 'Cardinal', 'LoE³ 366': 'Cardinal',
+  'Quad LoE 452': 'Cardinal',
+  'Solarban® 60': 'Vitro', 'Solarban® 70': 'Vitro',
+  'Solarban® R67': 'Vitro',
+  'COOL-LITE SKN 183 II': 'Saint-Gobain',
+  'COOL-LITE XTREME 61-29 II': 'Saint-Gobain',
+  'ECLAZ II': 'Saint-Gobain'
+};
+function coatingBaseName(rawCoating) {
+  return rawCoating.replace(/\s+S\d+$/, '');
+}
+function coatingForDropdown(rawCoating) {
+  var base = coatingBaseName(rawCoating);
+  for (var pattern in MANUFACTURERS) {
+    if (base === pattern || base.indexOf(pattern) === 0) {
+      return MANUFACTURERS[pattern] + ' ' + base;
+    }
+  }
+  console.warn('Unknown manufacturer for coating:', rawCoating);
+  return base;
+}
+function coatingForSummary(rawCoating) {
+  return coatingBaseName(rawCoating);
+}
+
+// Post-process Enthermal data: derive outerThickness, outerColorName
+function postProcessData() {
+  DATA.forEach(function(d) {
+    d.outerThickness = parseThickness(d.outerLite);
+    d.outerColorName = parseColorName(d.outerLite);
+  });
+}
+
+// Load all JSON data
+Promise.all([
+  fetch('data/enthermal.json').then(function(r) { return r.json(); }),
+  fetch('data/enthermal-plus-inboard.json').then(function(r) { return r.json(); }),
+  fetch('data/enthermal-plus-outboard.json').then(function(r) { return r.json(); })
+]).then(function(results) {
+  DATA = results[0];
+  DATA_PLUS_IN = results[1];
+  DATA_PLUS_OUT = results[2];
+  postProcessData();
+  dataLoaded = true;
+  // Init Enthermal tab with default selections
+  document.getElementById('outerT6').checked = true;
+  document.getElementById('innerT6').checked = true;
+  updateOuterCoatings();
+  if (outerCoatingEl.options.length > 0) {
+    var coat366 = Array.from(outerCoatingEl.options).find(function(o) { return o.value.includes('366') && o.value.includes('Clear'); });
+    if (coat366) { outerCoatingEl.value = coat366.value; updateInnerThickness(); }
+  }
+}).catch(function(err) { console.error('Failed to load data:', err); });
+
+const _REMOVED_EMBEDDED_DATA = [
   {"outerGlass":"Clear 4mm","coating":"Cardinal LoĒ-180™","innerGlass":"Clear 4mm","thickness":8.05,"uval":0.4753,"uvalIP":0.0837,"rval":11.95,"shgc":0.6332,"tvis":0.7868,"routVis":0.1532,"tdwISO":0.6196,"tuv":0.2747,"extL":46.23,"extA":-1.34,"extB":-5.55,"intL":91.06,"intA":-2.39,"intB":2.46},
   {"outerGlass":"Clear 4mm","coating":"Cardinal LoĒ²-270®","innerGlass":"Clear 4mm","thickness":8.05,"uval":0.3476,"uvalIP":0.0612,"rval":16.34,"shgc":0.3513,"tvis":0.6916,"routVis":0.1218,"tdwISO":0.5098,"tuv":0.1356,"extL":41.56,"extA":-2.96,"extB":-2.04,"intL":86.55,"intA":-3.66,"intB":2.78},
   {"outerGlass":"Clear 4mm","coating":"Cardinal LoĒ³-340®","innerGlass":"Clear 4mm","thickness":8.05,"uval":0.3201,"uvalIP":0.0564,"rval":17.74,"shgc":0.1589,"tvis":0.386,"routVis":0.1329,"tdwISO":0.27,"tuv":0.0205,"extL":43.38,"extA":-5.66,"extB":-12.84,"intL":68.83,"intA":-8.87,"intB":-5.53},
@@ -526,37 +595,39 @@ const DATA = [
   {"outerGlass":"Solargray® 6mm","coating":"Solarban 60®","innerGlass":"Clear 6mm","thickness":11.65,"uval":0.3457,"uvalIP":0.0609,"rval":16.42,"shgc":0.2104,"tvis":0.3542,"routVis":0.059,"tdwISO":0.2767,"tuv":0.0773,"extL":29.15,"extA":0.16,"extB":-2.11,"intL":65.99,"intA":-1.57,"intB":0.21},
   {"outerGlass":"Solexia® 6mm","coating":"Solarban 60®","innerGlass":"Clear 4mm","thickness":9.85,"uval":0.346,"uvalIP":0.0609,"rval":16.41,"shgc":0.2843,"tvis":0.6234,"routVis":0.0919,"tdwISO":0.4481,"tuv":0.1021,"extL":36.36,"extA":-3.92,"extB":-1.32,"intL":83.1,"intA":-8.84,"intB":3.59},
   {"outerGlass":"Solexia® 6mm","coating":"Solarban 60®","innerGlass":"Clear 5mm","thickness":10.65,"uval":0.3458,"uvalIP":0.0609,"rval":16.42,"shgc":0.2845,"tvis":0.6212,"routVis":0.0914,"tdwISO":0.4456,"tuv":0.0992,"extL":36.27,"extA":-3.9,"extB":-1.34,"intL":82.98,"intA":-8.99,"intB":3.61},
-  {"outerGlass":"Solexia® 6mm","coating":"Solarban 60®","innerGlass":"Clear 6mm","thickness":11.65,"uval":0.3457,"uvalIP":0.0609,"rval":16.42,"shgc":0.2845,"tvis":0.6156,"routVis":0.091,"tdwISO":0.4408,"tuv":0.0971,"extL":36.19,"extA":-3.87,"extB":-1.36,"intL":82.68,"intA":-9.24,"intB":3.67}
+  0
 ];
 
-DATA.forEach(d=>{const p=d.outerGlass.split(' ');d.outerThickness=p[p.length-1];d.outerColorName=p.slice(0,-1).join(' ');const ip=d.innerGlass.split(' ');d.innerThickness=ip[ip.length-1]});
 function labToRgb(L,a,b){let fy=(L+16)/116,fx=a/500+fy,fz=fy-b/200;const d=6/29,xn=.95047,yn=1,zn=1.08883;let x=xn*(fx>d?fx*fx*fx:(fx-16/116)*3*d*d),y=yn*(fy>d?fy*fy*fy:(fy-16/116)*3*d*d),z=zn*(fz>d?fz*fz*fz:(fz-16/116)*3*d*d);let rl=3.2404542*x-1.5371385*y-.4985314*z,gl=-.969266*x+1.8760108*y+.041556*z,bl=.0556434*x-.2040259*y+1.0572252*z;const g=c=>c<=.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-.055;return{r:Math.round(Math.min(255,Math.max(0,g(rl)*255))),g:Math.round(Math.min(255,Math.max(0,g(gl)*255))),b:Math.round(Math.min(255,Math.max(0,g(bl)*255)))}}
 function unique(a){return[...new Set(a)].sort()}
-function simplifyCoating(name){return name.replace(/Ē/g,'E').replace(/³/g,'3').replace(/²/g,'2').replace(/[®™]/g,'')}
+function simplifyCoating(name){return coatingForSummary(name)}
 let showInterior=false;
 const outerCoatingEl=document.getElementById('outerCoating'),flipBtn=document.getElementById('flipBtn');
 function getVal(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:null}
 function populateSelect(el,opts,ph){el.innerHTML='';const o=document.createElement('option');o.value='';o.textContent=ph;o.disabled=true;o.selected=true;el.appendChild(o);opts.forEach(v=>{const op=document.createElement('option');op.value=v;op.textContent=v;el.appendChild(op)})}
 function populateCoatingSelect(el,items,ph){el.innerHTML='';const o=document.createElement('option');o.value='';o.textContent=ph;o.disabled=true;o.selected=true;el.appendChild(o);items.forEach(function(item){const op=document.createElement('option');op.value=item.value;op.textContent=item.display;el.appendChild(op)})}
-function updateOuterCoatings(){const t=getVal('outerThickness');if(!t)return;const combos=[];const seen=new Set();DATA.filter(d=>d.outerThickness===t).forEach(function(d){const key=d.coating+'|'+d.outerColorName;if(!seen.has(key)){seen.add(key);combos.push({value:key,display:simplifyCoating(d.coating)+' on '+d.outerColorName.replace(/[®™]/g,''),coating:d.coating,color:d.outerColorName})}});combos.sort(function(a,b){return a.display.localeCompare(b.display)});const prev=outerCoatingEl.value;populateCoatingSelect(outerCoatingEl,combos,'Select coating…');if(combos.some(c=>c.value===prev))outerCoatingEl.value=prev;else clearResults();updateInnerThickness()}
+function updateOuterCoatings(){const t=getVal('outerThickness');if(!t||!dataLoaded)return;const combos=[];const seen=new Set();DATA.filter(d=>d.outerThickness===t).forEach(function(d){const key=d.outerLowE+'|'+d.outerColorName;if(!seen.has(key)){seen.add(key);var base=coatingBaseName(d.outerLowE);var colorClean=d.outerColorName.replace(/[®™]/g,'').replace(/^SGG\s+/,'');var displayText=coatingForDropdown(d.outerLowE);if(colorClean.indexOf(base.replace(/[®™²³]/g,''))>=0||base.replace(/[®™²³]/g,'').indexOf(colorClean)>=0){/* SGG/coated glass — name already in coating */}else{displayText+=' on '+d.outerColorName.replace(/[®™]/g,'')}combos.push({value:key,display:displayText,coating:d.outerLowE,color:d.outerColorName})}});combos.sort(function(a,b){return a.display.localeCompare(b.display)});const prev=outerCoatingEl.value;populateCoatingSelect(outerCoatingEl,combos,'Select coating…');if(combos.some(c=>c.value===prev))outerCoatingEl.value=prev;else clearResults();updateInnerThickness()}
 function parseCoatingCombo(val){if(!val)return{coating:'',color:''};var parts=val.split('|');return{coating:parts[0],color:parts[1]||''}}
 function updateInnerThickness(){const ot=getVal('outerThickness'),combo=parseCoatingCombo(outerCoatingEl.value),coat=combo.coating,oc=combo.color;
   if(!ot||!coat||!oc){document.querySelectorAll('input[name="innerThickness"]').forEach(r=>{r.disabled=false;r.parentElement.querySelector('label').style.opacity='1';r.parentElement.querySelector('label').style.cursor='pointer'});return}
-  var validInner=unique(DATA.filter(d=>d.outerGlass===oc+' '+ot&&d.coating===coat).map(d=>d.innerThickness));
+  var filtered=DATA.filter(d=>d.outerColorName===oc&&d.outerThickness===ot&&d.outerLowE===coat);
+  var validInner=unique(filtered.map(d=>d.innerLite));
+  // Map innerLite to nominal thickness for radio matching
+  var validThick=unique(validInner.map(function(il){var t=parseThickness(il);return t||il}));
   var currentInner=getVal('innerThickness');
   document.querySelectorAll('input[name="innerThickness"]').forEach(r=>{
-    var val=r.value;var isValid=validInner.includes(val);
+    var val=r.value;var isValid=validThick.includes(val);
     r.disabled=!isValid;
     r.parentElement.querySelector('label').style.opacity=isValid?'1':'0.35';
     r.parentElement.querySelector('label').style.cursor=isValid?'pointer':'not-allowed';
   });
-  if(!validInner.includes(currentInner)){
+  if(!validThick.includes(currentInner)){
     var firstValid=document.querySelector('input[name="innerThickness"]:not(:disabled)');
     if(firstValid){firstValid.checked=true}
   }
   updateResults();
 }
-function findMatch(){const ot=getVal('outerThickness'),combo=parseCoatingCombo(outerCoatingEl.value),coat=combo.coating,oc=combo.color,it=getVal('innerThickness');if(!ot||!oc||!coat||!it)return null;return DATA.find(d=>d.outerGlass===oc+' '+ot&&d.coating===coat&&d.innerGlass==='Clear '+it)||null}
+function findMatch(){const ot=getVal('outerThickness'),combo=parseCoatingCombo(outerCoatingEl.value),coat=combo.coating,oc=combo.color,it=getVal('innerThickness');if(!ot||!oc||!coat||!it)return null;return DATA.find(function(d){return d.outerColorName===oc&&d.outerThickness===ot&&d.outerLowE===coat&&(parseThickness(d.innerLite)===it||d.innerLite===it)})||null}
 const glassColors={'Clear':'rgba(200,225,245,0.45)','Optigray':'rgba(140,145,150,0.55)','Optiblue':'rgba(150,190,220,0.55)','Solarbronze':'rgba(180,150,110,0.55)','Solargray':'rgba(130,130,135,0.6)','Solarblue':'rgba(120,170,210,0.6)','Solexia':'rgba(170,210,180,0.5)'};
 function getGlassColor(s){for(const[k,v]of Object.entries(glassColors))if(s.toLowerCase().includes(k.toLowerCase()))return v;return'rgba(200,225,245,0.45)'}
 function clearResults(){
@@ -585,23 +656,24 @@ document.getElementById('metricRoutVis').innerHTML=(match.routVis*100).toFixed(1
 document.getElementById('metricTdw').textContent='32';
 document.getElementById('metricTuv').innerHTML=(match.tuv*100).toFixed(1)+'<span style="font-size:50%">%</span>';
 document.querySelectorAll('.metric-value').forEach(el=>{el.classList.remove('fade-in');void el.offsetWidth;el.classList.add('fade-in')});
-const outerPx=Math.round(parseInt(match.outerThickness)*3),innerPx=Math.round(parseInt(match.innerThickness)*3);
+var outerNom=parseThickness(match.outerLite);var innerNom=parseThickness(match.innerLite);
+const outerPx=Math.round(parseInt(outerNom)*3),innerPx=Math.round(parseInt(innerNom||'4')*3);
 const outer=document.getElementById('csPaneOuter'),inner=document.getElementById('csPaneInner');
 outer.style.width=outerPx+'px';
-outer.style.background='linear-gradient(180deg,'+getGlassColor(match.outerGlass)+' 0%,'+getGlassColor(match.outerGlass).replace(/0\.\d+\)/,'0.3)')+' 100%)';
+outer.style.background='linear-gradient(180deg,'+getGlassColor(match.outerLite)+' 0%,'+getGlassColor(match.outerLite).replace(/0\.\d+\)/,'0.3)')+' 100%)';
 document.getElementById('csCoatingLine').style.display='block';
 inner.style.width=innerPx+'px';
 inner.style.background='linear-gradient(180deg,rgba(200,220,240,0.6) 0%,rgba(180,200,220,0.4) 100%)';
 inner.style.borderColor='rgba(180,200,220,0.5)';
-document.getElementById('csOuterDetail').textContent=simplifyCoating(match.coating);
+document.getElementById('csOuterDetail').textContent=coatingForSummary(match.outerLowE);
 document.getElementById('csOuterSub').textContent=match.outerColorName.replace(/[®™]/g,'')+' '+match.outerThickness;
-document.getElementById('csInnerDetail').textContent='Clear '+match.innerThickness;
-document.getElementById('csThicknessVal').textContent=match.thickness.toFixed(1)+' mm';
+document.getElementById('csInnerDetail').textContent=match.innerLite;
+document.getElementById('csThicknessVal').textContent=match.totalThickness.toFixed(1)+' mm';
 // Position callouts: coating is at right edge of outer pane, vacuum is in the gap
 var coatingLeft=outerPx-3;var vacuumLeft=outerPx-1;
 document.getElementById('csCalloutCoating').style.left=coatingLeft+'px';
 document.getElementById('csCalloutVacuum').style.left=vacuumLeft+'px';
-document.getElementById('summaryText').innerHTML='<strong>'+simplifyCoating(match.coating)+'</strong> on <strong>'+match.outerColorName.replace(/[®™]/g,'')+' '+match.outerThickness+'</strong> outboard and <strong>Clear '+match.innerThickness+'</strong> inboard.';
+document.getElementById('summaryText').innerHTML='<strong>'+coatingForSummary(match.outerLowE)+'</strong> on <strong>'+match.outerColorName.replace(/[®™]/g,'')+' '+match.outerThickness+'</strong> outboard and <strong>'+match.innerLite+'</strong> inboard.';
 updateColor(match);requestAnimationFrame(centerCrossSection)}
 function updateColor(match){if(!match)match=findMatch();if(!match)return;
 var L=showInterior?match.intL:match.extL,a=showInterior?match.intA:match.extA,b=showInterior?match.intB:match.extB;
@@ -631,14 +703,13 @@ document.querySelectorAll('.product-tab').forEach(tab=>{tab.addEventListener('cl
   document.getElementById('csEnthermal').style.display=isPlus?'none':'flex';
   document.getElementById('csEnthPlus').style.display=isPlus?'flex':'none';
   if(isPlus){
-    if(!plusInitialized){initPlusConfig();document.getElementById('plusSrf4').checked=true;var pCoat366=Array.from(plusOuterCoatingEl.options).find(o=>o.value.includes('366'));if(pCoat366){plusOuterCoatingEl.value=pCoat366.value;updatePlusVigCoatings();var vCoat366=Array.from(plusVigCoatingEl.options).find(o=>o.value.includes('366'));if(vCoat366){plusVigCoatingEl.value=vCoat366.value}}updatePlusSurfaces();plusInitialized=true}
+    if(!plusInitialized&&dataLoaded){initPlusConfig();document.getElementById('plusSrf4').checked=true;var pCoat366=Array.from(plusOuterCoatingEl.options).find(function(o){return o.value.includes('366')});if(pCoat366){plusOuterCoatingEl.value=pCoat366.value;updatePlusVigCoatings();var vCoat366=Array.from(plusVigCoatingEl.options).find(function(o){return o.value.includes('366')});if(vCoat366){plusVigCoatingEl.value=vCoat366.value}}updatePlusSurfaces();plusInitialized=true}
     updatePlusResults();requestAnimationFrame(function(){alignPlusCrossSection();centerPlusCrossSection();repositionPlusToggles()});
   }else{
     updateResults();requestAnimationFrame(function(){alignCrossSection();centerCrossSection()});
   }
 })});
-document.getElementById('outerT6').checked=true;document.getElementById('innerT6').checked=true;updateOuterCoatings();
-if(outerCoatingEl.options.length>0){var coat366=Array.from(outerCoatingEl.options).find(o=>o.value.includes('366')&&o.value.includes('Clear'));if(coat366){outerCoatingEl.value=coat366.value;updateInnerThickness()}}
+// Init moved to fetch().then() callback above
 
 // Align cross-section pane height with the color display window
 function alignCrossSection(){}
@@ -671,7 +742,17 @@ window.addEventListener('resize',function(){requestAnimationFrame(centerCrossSec
 function centerPlusCrossSection(){}
 
 // ── Enthermal Plus Data & Logic ──
-const DATA_PLUS = [
+// DATA_PLUS_IN and DATA_PLUS_OUT loaded via fetch() above
+// Helper: get active Plus dataset based on placement toggle
+function getActivePlusData(){
+  var isOutboard=document.getElementById('posToggleInput').checked;
+  return isOutboard?DATA_PLUS_OUT:DATA_PLUS_IN;
+}
+// Helper: get VIG coating from a Plus record (middleLowE or innerLowE, whichever is non-empty)
+function getVigCoating(rec){return rec.middleLowE||rec.innerLowE||''}
+// Helper: get VIG surface from a Plus record
+function getVigSurface(rec){return rec.middleLowE?'S4':'S5'}
+const _REMOVED_DATA_PLUS = [
   {"outerCoating":"Cardinal LoĒ²-272®","vigCoating":"Cardinal LoĒ²-272®","vigSurface":"S5","thickness":24.65,"uval":0.3036,"uvalIP":0.0535,"rval":18.7,"shgc":0.3364,"tvis":0.5678,"routVis":0.1296,"tdwISO":0.3948,"tuv":0.0528,"extL":42.66,"extA":-2.06,"extB":-0.9,"intL":79.94,"intA":-3.81,"intB":4.58},
   {"outerCoating":"Cardinal LoĒ²-272®","vigCoating":"Cardinal LoĒ-180™","vigSurface":"S5","thickness":24.65,"uval":0.3683,"uvalIP":0.0649,"rval":15.42,"shgc":0.3583,"tvis":0.6258,"routVis":0.1477,"tdwISO":0.4395,"tuv":0.0765,"extL":45.36,"extA":-1.4,"extB":-4.24,"intL":83.13,"intA":-3.74,"intB":4.5},
   {"outerCoating":"Cardinal LoĒ²-272®","vigCoating":"Cardinal LoĒ²-270®","vigSurface":"S5","thickness":24.65,"uval":0.2848,"uvalIP":0.0502,"rval":19.94,"shgc":0.3236,"tvis":0.55,"routVis":0.1393,"tdwISO":0.3721,"tuv":0.0422,"extL":44.11,"extA":-5.39,"extB":0.24,"intL":78.94,"intA":-4.85,"intB":4.78},
@@ -707,56 +788,122 @@ const DATA_PLUS = [
   {"outerCoating":"Solarban 60®","vigCoating":"Solarban 60®","vigSurface":"S5","thickness":24.65,"uval":0.2827,"uvalIP":0.0498,"rval":20.08,"shgc":0.3282,"tvis":0.5821,"routVis":0.1324,"tdwISO":0.3986,"tuv":0.0661,"extL":43.06,"extA":-2.66,"extB":-0.51,"intL":80.77,"intA":-5.21,"intB":4.97},
   {"outerCoating":"Solarban 60®","vigCoating":"Solarban 70®","vigSurface":"S5","thickness":24.65,"uval":0.2344,"uvalIP":0.0413,"rval":24.22,"shgc":0.278,"tvis":0.5329,"routVis":0.1455,"tdwISO":0.3345,"tuv":0.0241,"extL":45.02,"extA":-2.48,"extB":-4.24,"intL":77.93,"intA":-6.95,"intB":6.57},
   {"outerCoating":"Solarban 70®","vigCoating":"Solarban 60®","vigSurface":"S5","thickness":24.65,"uval":0.2804,"uvalIP":0.0494,"rval":20.25,"shgc":0.2392,"tvis":0.5329,"routVis":0.155,"tdwISO":0.3345,"tuv":0.0241,"extL":46.33,"extA":-4.31,"extB":-2.84,"intL":77.93,"intA":-6.95,"intB":6.57},
-  {"outerCoating":"Solarban 70®","vigCoating":"Solarban 70®","vigSurface":"S5","thickness":24.65,"uval":0.2327,"uvalIP":0.041,"rval":24.4,"shgc":0.2233,"tvis":0.4887,"routVis":0.1657,"tdwISO":0.2908,"tuv":0.0099,"extL":47.77,"extA":-4.72,"extB":-5.07,"intL":75.22,"intA":-8.26,"intB":7.87}
+  0
 ];
 
 var plusOuterCoatingEl=document.getElementById('plusOuterCoating');
 var plusVigCoatingEl=document.getElementById('plusVigCoating');
 var plusInitialized=false;
 
+// Progressive filter: returns records matching all current Plus selections up to the given level
+function filterPlusData(){
+  var data=getActivePlusData();
+  var isOutboard=document.getElementById('posToggleInput').checked;
+  // Step 1: Outer thickness
+  var ot=getVal('plusOuterThickness');
+  if(ot)data=data.filter(function(d){return parseThickness(d.outerLite)===ot});
+  // Step 2: Outer coating
+  var oc=plusOuterCoatingEl.value;
+  if(oc)data=data.filter(function(d){return d.outerLowE===oc});
+  // Step 3: Gas fill
+  var isAir=document.getElementById('gapToggleInput').checked;
+  data=data.filter(function(d){return d.gasFill===(isAir?'Air':'Ar90')});
+  return data;
+}
+
 function initPlusConfig(){
-  var outerCoats=unique(DATA_PLUS.map(d=>d.outerCoating));
-  populateSelect(plusOuterCoatingEl,outerCoats,'Select coating…');
-  Array.from(plusOuterCoatingEl.options).forEach(function(opt){if(opt.value)opt.textContent=simplifyCoating(opt.value)+' on Clear'});
-  var availableThick=new Set(['4mm']);
+  if(!dataLoaded)return;
+  var data=getActivePlusData();
+  var isOutboard=document.getElementById('posToggleInput').checked;
+  // Enable outer thickness radios based on available data
+  var availThick=new Set(data.map(function(d){return parseThickness(d.outerLite)}));
   document.querySelectorAll('input[name="plusOuterThickness"]').forEach(function(r){
     var label=r.nextElementSibling||r.parentElement.querySelector('label');
-    if(!availableThick.has(r.value)){
-      r.disabled=true;if(label)label.style.opacity='0.35';if(label)label.style.cursor='not-allowed';
-    }else{
-      r.disabled=false;if(label)label.style.opacity='1';if(label)label.style.cursor='pointer';
-    }
+    var isValid=availThick.has(r.value);
+    r.disabled=!isValid;
+    if(label){label.style.opacity=isValid?'1':'0.35';label.style.cursor=isValid?'pointer':'not-allowed'}
   });
+  // Populate outer coating dropdown
+  updatePlusOuterCoatings();
 }
+
+function updatePlusOuterCoatings(){
+  var data=getActivePlusData();
+  var ot=getVal('plusOuterThickness');
+  if(ot)data=data.filter(function(d){return parseThickness(d.outerLite)===ot});
+  var coats=unique(data.map(function(d){return d.outerLowE}));
+  var prev=plusOuterCoatingEl.value;
+  populateSelect(plusOuterCoatingEl,coats,'Select coating…');
+  Array.from(plusOuterCoatingEl.options).forEach(function(opt){if(opt.value)opt.textContent=coatingForDropdown(opt.value)});
+  if(coats.includes(prev))plusOuterCoatingEl.value=prev;
+  else if(coats.length===1)plusOuterCoatingEl.value=coats[0];
+  updatePlusVigCoatings();
+}
+
 function updatePlusVigCoatings(){
-  var oc=plusOuterCoatingEl.value;
-  if(!oc){populateSelect(plusVigCoatingEl,[],'Select outer coating first…');updatePlusSurfaces();return}
-  var vigCoats=unique(DATA_PLUS.filter(d=>d.outerCoating===oc).map(d=>d.vigCoating));
+  var filtered=filterPlusData();
+  // Get unique VIG coatings (base name without surface)
+  var vigCoats=unique(filtered.map(function(d){return coatingBaseName(getVigCoating(d))})).filter(function(c){return c});
   var prev=plusVigCoatingEl.value;
   populateSelect(plusVigCoatingEl,vigCoats,'Select coating…');
-  Array.from(plusVigCoatingEl.options).forEach(function(opt){if(opt.value)opt.textContent=simplifyCoating(opt.value)+' on Clear'});
+  Array.from(plusVigCoatingEl.options).forEach(function(opt){if(opt.value)opt.textContent=coatingForDropdown(opt.value)});
   if(vigCoats.includes(prev))plusVigCoatingEl.value=prev;
-  else if(vigCoats.length>0){plusVigCoatingEl.value=vigCoats[0]}
+  else if(vigCoats.length>0)plusVigCoatingEl.value=vigCoats[0];
   updatePlusSurfaces();
 }
+
 function updatePlusSurfaces(){
-  var oc=plusOuterCoatingEl.value;
+  var filtered=filterPlusData();
   var vc=plusVigCoatingEl.value;
-  if(!oc||!vc){updatePlusResults();return}
-  var validSurfaces=unique(DATA_PLUS.filter(d=>d.outerCoating===oc&&d.vigCoating===vc).map(d=>d.vigSurface));
+  if(!vc){updatePlusResults();return}
+  // Filter by selected VIG coating base name
+  filtered=filtered.filter(function(d){return coatingBaseName(getVigCoating(d))===vc});
+  var isOutboard=document.getElementById('posToggleInput').checked;
+  if(isOutboard){
+    // Outboard: always S5, no toggle needed
+    document.getElementById('plusSrf5').checked=true;
+    updatePlusResults();
+    return;
+  }
+  var validSurfaces=unique(filtered.map(function(d){return getVigSurface(d)}));
   var currentSrf=document.querySelector('input[name="plusCoatingSurface"]:checked');
   var currentVal=currentSrf?currentSrf.value:'';
   if(!validSurfaces.includes(currentVal)){
-    if(validSurfaces.includes('S4')){document.getElementById('plusSrf4').checked=true}
-    else if(validSurfaces.includes('S5')){document.getElementById('plusSrf5').checked=true}
+    if(validSurfaces.includes('S4'))document.getElementById('plusSrf4').checked=true;
+    else if(validSurfaces.includes('S5'))document.getElementById('plusSrf5').checked=true;
   }
   updatePlusResults();
 }
+
 function findPlusMatch(){
-  var oc=plusOuterCoatingEl.value;var vc=plusVigCoatingEl.value;
-  var srf=document.querySelector('input[name="plusCoatingSurface"]:checked');var srfVal=srf?srf.value:'';
-  if(!oc||!vc||!srfVal)return null;
-  return DATA_PLUS.find(d=>d.outerCoating===oc&&d.vigCoating===vc&&d.vigSurface===srfVal)||null;
+  var filtered=filterPlusData();
+  var vc=plusVigCoatingEl.value;
+  var srf=document.querySelector('input[name="plusCoatingSurface"]:checked');
+  var srfVal=srf?srf.value:'';
+  if(!vc||!srfVal)return null;
+  // Filter by VIG coating base name and surface
+  filtered=filtered.filter(function(d){
+    var vigBase=coatingBaseName(getVigCoating(d));
+    var vigSrf=getVigSurface(d);
+    return vigBase===vc&&vigSrf===srfVal;
+  });
+  // If multiple remain (different middleLite/innerLite thicknesses), use VIG thickness dropdown
+  var vigThickSel=document.getElementById('plusVigThickness').value;
+  if(vigThickSel&&filtered.length>1){
+    // VIG thickness format: "4/4" meaning outer_vig/inner_vig nominal mm
+    var parts=vigThickSel.split('/');
+    var isOutboard=document.getElementById('posToggleInput').checked;
+    filtered=filtered.filter(function(d){
+      if(isOutboard){
+        // VIG = outerLite + middleLite
+        return parseThickness(d.outerLite)===(parts[0]+'mm')&&(parseThickness(d.middleLite)===(parts[1]+'mm')||(!parseThickness(d.middleLite)&&d.middleLite===parts[1]));
+      }else{
+        // VIG = middleLite + innerLite
+        return (parseThickness(d.middleLite)===(parts[0]+'mm')||d.middleLite===parts[0])&&(parseThickness(d.innerLite)===(parts[1]+'mm')||d.innerLite===parts[1]);
+      }
+    });
+  }
+  return filtered.length===1?filtered[0]:filtered[0]||null;
 }
 function updatePlusResults(surfaceOnly){
   var match=findPlusMatch();
@@ -770,21 +917,19 @@ function updatePlusResults(surfaceOnly){
   document.getElementById('metricRoutVis').innerHTML=(match.routVis*100).toFixed(1)+'<span style="font-size:50%">%</span>';
   document.getElementById('metricTdw').textContent='32';
   document.getElementById('metricTuv').innerHTML=(match.tuv*100).toFixed(1)+'<span style="font-size:50%">%</span>';
-  document.getElementById('csThicknessValPlus').textContent=match.thickness.toFixed(1)+' mm';
+  document.getElementById('csThicknessValPlus').textContent=match.totalThickness.toFixed(1)+' mm';
   if(!surfaceOnly){document.querySelectorAll('.metric-value').forEach(function(el){el.classList.remove('fade-in');void el.offsetWidth;el.classList.add('fade-in')})}
   // Determine placement mode
   var isOutboard=document.getElementById('posToggleInput').checked;
-  var isS4=match.vigSurface==='S4';
+  var vigCoatRaw=getVigCoating(match);
+  var vigSrf=getVigSurface(match);
+  var isS4=vigSrf==='S4';
   var vigThick=document.getElementById('plusVigThickness').value;
   if(isOutboard){
-    document.getElementById('summaryText').innerHTML='<strong>'+vigThick+' mm</strong> <strong>Enthermal</strong> Outboard with <strong>'+simplifyCoating(match.vigCoating)+'</strong> (S2) and <strong>'+simplifyCoating(match.outerCoating)+'</strong> (S5)';
+    document.getElementById('summaryText').innerHTML='<strong>'+match.totalThickness.toFixed(1)+' mm</strong> <strong>Enthermal</strong> Outboard with <strong>'+coatingForSummary(match.outerLowE)+'</strong> (S2) and <strong>'+coatingForSummary(vigCoatRaw)+'</strong> (S5)';
   }else{
-    document.getElementById('summaryText').innerHTML='<strong>'+vigThick+' mm</strong> <strong>Enthermal</strong> Inboard with <strong>'+simplifyCoating(match.outerCoating)+'</strong> (S2) and <strong>'+simplifyCoating(match.vigCoating)+'</strong> ('+match.vigSurface+')';
+    document.getElementById('summaryText').innerHTML='<strong>'+match.totalThickness.toFixed(1)+' mm</strong> <strong>Enthermal</strong> Inboard with <strong>'+coatingForSummary(match.outerLowE)+'</strong> (S2) and <strong>'+coatingForSummary(vigCoatRaw)+'</strong> ('+vigSrf+')';
   }
-
-  // Get the exact dropdown display text for each coating
-  var outerCoatText=plusOuterCoatingEl.options[plusOuterCoatingEl.selectedIndex]?plusOuterCoatingEl.options[plusOuterCoatingEl.selectedIndex].textContent:'';
-  var vigCoatText=plusVigCoatingEl.options[plusVigCoatingEl.selectedIndex]?plusVigCoatingEl.options[plusVigCoatingEl.selectedIndex].textContent:'';
 
   if(isOutboard){
     // Outboard: coatings fixed at S2 (VIG outer right edge) and S5 (mono pane left edge)
@@ -793,11 +938,11 @@ function updatePlusResults(surfaceOnly){
     document.getElementById('csPlusMonoS2').style.opacity='0';
     document.getElementById('csPlusMonoS5').style.opacity='1';
     // Cross-section info labels: left=Enthermal, right=Inboard glass
-    document.getElementById('csPlusOuterDetail').textContent=simplifyCoating(match.vigCoating);
-    document.getElementById('csPlusOuterCoating').textContent=vigThick+' mm';
-    document.getElementById('csPlusVigCoatingLabel').textContent=simplifyCoating(match.outerCoating);
+    document.getElementById('csPlusOuterDetail').textContent=coatingForSummary(match.outerLowE);
+    document.getElementById('csPlusOuterCoating').textContent=match.outerLite;
+    document.getElementById('csPlusVigCoatingLabel').textContent=coatingForSummary(vigCoatRaw);
     document.getElementById('csPlusRightCoating').style.display='';
-    document.getElementById('csPlusRightCoating').textContent='Clear 4mm';
+    document.getElementById('csPlusRightCoating').textContent=match.innerLite;
   }else{
     // Inboard: S2 on mono right, S4/S5 on VIG (toggle)
     document.getElementById('csPlusMonoS2').style.opacity='1';
@@ -805,11 +950,11 @@ function updatePlusResults(surfaceOnly){
     document.getElementById('csPlusCoatingS4').style.opacity=isS4?'1':'0';
     document.getElementById('csPlusCoatingS5').style.opacity=isS4?'0':'1';
     // Cross-section info labels
-    document.getElementById('csPlusOuterDetail').textContent=simplifyCoating(match.outerCoating);
-    document.getElementById('csPlusOuterCoating').textContent='Clear 4mm';
-    document.getElementById('csPlusVigCoatingLabel').textContent=simplifyCoating(match.vigCoating);
+    document.getElementById('csPlusOuterDetail').textContent=coatingForSummary(match.outerLowE);
+    document.getElementById('csPlusOuterCoating').textContent=match.outerLite;
+    document.getElementById('csPlusVigCoatingLabel').textContent=coatingForSummary(vigCoatRaw);
     document.getElementById('csPlusRightCoating').style.display='';
-    document.getElementById('csPlusRightCoating').textContent=vigThick+' mm';
+    document.getElementById('csPlusRightCoating').textContent=match.innerLite;
   }
 
   // Position callout dots
@@ -861,6 +1006,7 @@ function updatePlusResults(surfaceOnly){
   }
   updateColor(match);requestAnimationFrame(centerPlusCrossSection);
 }
+document.querySelectorAll('input[name="plusOuterThickness"]').forEach(function(r){r.addEventListener('change',updatePlusOuterCoatings)});
 plusOuterCoatingEl.addEventListener('change',updatePlusVigCoatings);
 plusVigCoatingEl.addEventListener('change',updatePlusSurfaces);
 
@@ -927,8 +1073,20 @@ function repositionPlusToggles(){_plusToggleResizers.forEach(function(fn){fn()})
   updatePlusSurfaces=function(){
     var oc=plusOuterCoatingEl.value;
     var vc=plusVigCoatingEl.value;
+    var isOutboard=document.getElementById('posToggleInput').checked;
     if(!oc||!vc){toggle.classList.remove('disabled');input.disabled=false;positionThumb();updatePlusResults();return}
-    var validSurfaces=unique(DATA_PLUS.filter(function(d){return d.outerCoating===oc&&d.vigCoating===vc}).map(function(d){return d.vigSurface}));
+    if(isOutboard){
+      // Outboard: always S5, disable toggle
+      input.checked=true;input.disabled=true;toggle.classList.add('disabled');
+      radioS5.checked=true;
+      labelS4.classList.toggle('active',false);
+      labelS5.classList.toggle('active',true);
+      positionThumb();
+      updatePlusResults();
+      return;
+    }
+    var filtered=filterPlusData().filter(function(d){return coatingBaseName(getVigCoating(d))===vc});
+    var validSurfaces=unique(filtered.map(function(d){return getVigSurface(d)}));
     var hasS4=validSurfaces.includes('S4'),hasS5=validSurfaces.includes('S5');
     if(hasS4&&hasS5){
       toggle.classList.remove('disabled');input.disabled=false;
@@ -965,6 +1123,8 @@ function repositionPlusToggles(){_plusToggleResizers.forEach(function(fn){fn()})
     labelAir.classList.toggle('active',isAir);
     document.getElementById('csPlusArgonLabel').textContent=isAir?'12.7 mm Air Fill':'12.7 mm Argon Fill';
     positionThumb();
+    // Gas fill change affects the cascade — refresh downstream
+    if(dataLoaded&&plusInitialized)updatePlusVigCoatings();
   }
   _plusToggleResizers.push(sync);
   input.addEventListener('change',sync);
@@ -1053,6 +1213,8 @@ function repositionPlusToggles(){_plusToggleResizers.forEach(function(fn){fn()})
       }
       // Force reflow, then measure callouts with stable layout
       void csUnit.offsetWidth;
+      // Re-init Plus cascade with new dataset
+      if(dataLoaded)initPlusConfig();
       updatePlusResults();
       // Restore pane transitions and fade in
       requestAnimationFrame(function(){
