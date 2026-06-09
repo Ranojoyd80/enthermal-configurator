@@ -7,10 +7,11 @@
 
 ## 1. Architecture — Non-Negotiable Constraints
 
-- **Single self-contained HTML file.** The entire application lives in one `.html` file (~99 KB). All CSS is in a `<style>` block, all JS in a `<script>` block. There are no external CSS or JS files.
-- **Zero dependencies.** No React, no Tailwind, no npm, no build step. The only external resource is Google Fonts CDN.
+- **Single HTML file for all code.** All application code lives in one `.html` file (~104 KB) — all CSS in a `<style>` block, all JS in a `<script>` block. There are no external CSS or JS files.
+- **Data lives in external JSON.** Product data is split into three files in `data/` (`enthermal.json`, `enthermal-plus-inboard.json`, `enthermal-plus-outboard.json`) and loaded at runtime via `fetch()`. The data is *not* embedded in the HTML. Because of the `fetch()` calls, the app **must be served over HTTP(S)** — opening it via `file://` loads blank. See [HOW-TO-RUN.txt](HOW-TO-RUN.txt) and [HOSTING.md](HOSTING.md).
+- **Zero dependencies.** No React, no Tailwind, no npm, no build step (the CSV→JSON Python script in `ProductData/` is a data-prep tool, not a frontend build step). The only external runtime resource is Google Fonts CDN.
 - **Vanilla stack only.** HTML5, CSS3, JavaScript ES6. No frameworks, no libraries, no transpilation.
-- **No separate files.** Never create standalone `.css`, `.js`, or `.json` files unless explicitly asked to separate data.
+- **No new separate files.** Keep CSS and JS in the HTML. Don't create standalone `.css` or `.js` files. New `.json` data files are added only as part of the established `data/` + `csv_to_json.py` pipeline.
 
 When the Figma MCP returns React + Tailwind code (its default), **translate it** into the patterns described below. Do not paste React/Tailwind output directly.
 
@@ -190,8 +191,9 @@ Do NOT introduce any font sizes outside this scale.
 ## 5. JavaScript Patterns
 
 ### Data Storage
-- All data is embedded as `const DATA = [...]` and `const DATA_PLUS = [...]` arrays
-- No fetch calls, no external JSON files (unless migrating)
+- Data is loaded at startup from three external JSON files via `fetch()` (see line ~541): `data/enthermal.json`, `data/enthermal-plus-inboard.json`, `data/enthermal-plus-outboard.json`
+- The fetches resolve into the in-memory arrays (`DATA`, `DATA_PLUS_IN`, `DATA_PLUS_OUT`); all init runs inside the `fetch().then()` callback
+- The JSON is generated from the CSV sources in `ProductData/` by `csv_to_json.py` — never hand-edit the JSON; change the CSV/script and regenerate
 - Derived fields computed at runtime: `outerThickness`, `outerColorName`, `innerThickness`
 
 ### Cascading Filter Logic
@@ -279,7 +281,7 @@ Both tabs implement constraint propagation — each selection filters downstream
 - ❌ Do NOT split into multiple files unless explicitly requested
 - ❌ Do NOT use `localStorage`, `sessionStorage`, or cookies
 - ❌ Do NOT add font sizes outside the 6-size scale (9/11/13/15/25/32)
-- ❌ Do NOT use `async/await` for data — it's all synchronous embedded data
+- ❌ Do NOT hand-edit the JSON in `data/` — regenerate it from the CSVs via `csv_to_json.py`
 - ❌ Do NOT use `display: none/block` to toggle coating lines — use `opacity` transitions
 - ❌ Do NOT use `getBoundingClientRect` without forcing reflow first (`void el.offsetWidth`)
 
@@ -304,7 +306,7 @@ This is the **LuxWall Enthermal™ Product Configurator** — a technical sales 
 
 **Current tabs:** Enthermal™ (60 configs), Enthermal Plus™ (36+ configs), Enthermal Spandrel (disabled/placeholder)
 
-**Data source:** LBNL Windows 7 / PyWinCalc calculations exported to CSV, embedded as JS object arrays.
+**Data source:** LBNL Windows 7 / PyWinCalc calculations exported to CSV (`ProductData/`), converted to the JSON files in `data/` by `csv_to_json.py`, and loaded at runtime via `fetch()`.
 
 **Accuracy is critical.** All displayed performance values are validated against official LuxWall product data sheets (98%+ match rate). Never modify, round, or truncate data values.
 

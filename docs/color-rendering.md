@@ -8,14 +8,14 @@ This document traces one full render cycle: from the raw L\*a\*b\* numbers store
 
 ## 1. Where the color data lives
 
-Every configuration row in the embedded datasets carries **two** reflected-color triplets — one for each side of the glass assembly:
+Every configuration row in the datasets carries **two** reflected-color triplets — one for each side of the glass assembly:
 
 | Field | Meaning |
 |---|---|
 | `extL`, `extA`, `extB` | Exterior reflected color (what you see from outside the building) |
 | `intL`, `intA`, `intB` | Interior reflected color (what you see from inside) |
 
-These are CIE 1976 L\*a\*b\* values computed by LBNL Windows 7 / PyWinCalc under the D65 illuminant and 2° observer, then embedded directly into the HTML as JavaScript object literals. No fetch, no runtime I/O.
+These are CIE 1976 L\*a\*b\* values computed by LBNL Windows 7 / PyWinCalc under the D65 illuminant and 2° observer, stored in the `data/*.json` files and loaded into `DATA` / `DATA_PLUS` at startup via `fetch()`.
 
 > **Why Lab and not RGB?** Lab is device-independent and perceptually uniform — it is the canonical output of spectral glazing calculations. The configurator converts to sRGB only at the very last step, for display.
 
