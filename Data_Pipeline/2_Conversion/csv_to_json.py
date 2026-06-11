@@ -20,9 +20,9 @@ old naming mess (SGG prefixes, ®/™, variable thickness position). Everything
 the UI needs is in the stack.
 
 Outputs:
-  data/enthermal.json
-  data/enthermal-plus-inboard.json
-  data/enthermal-plus-outboard.json
+  App_Data/enthermal.json
+  App_Data/enthermal-plus-inboard.json
+  App_Data/enthermal-plus-outboard.json
 
 Usage:
   python csv_to_json.py
@@ -34,14 +34,16 @@ import os
 import re
 import sys
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.dirname(SCRIPT_DIR)
-OUTPUT_DIR = os.path.join(REPO_ROOT, 'data')
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))      # Data_Pipeline/2_Conversion
+PRODUCT_DATA = os.path.dirname(SCRIPT_DIR)                    # Data_Pipeline
+REPO_ROOT = os.path.dirname(PRODUCT_DATA)                     # repo root
+OUTPUT_DIR = os.path.join(REPO_ROOT, 'App_Data')
 HTML_PATH = os.path.join(REPO_ROOT, 'enthermal-configurator.html')
 
-ENTHERMAL_CSV = os.path.join(SCRIPT_DIR, 'IG_Config_Enthermal_Dataset_12-04-26.csv')
-PLUS_INBOARD_CSV = os.path.join(SCRIPT_DIR, 'IG_Config_EnthermalPlus_Inboard_Dataset_12-04-26.csv')
-PLUS_OUTBOARD_CSV = os.path.join(SCRIPT_DIR, 'IG_Config_EnthermalPlus_Outboard_Dataset_12-04-26.csv')
+CSV_DIR = os.path.join(PRODUCT_DATA, '1_Source_CSVs')
+ENTHERMAL_CSV = os.path.join(CSV_DIR, 'IG_Config_Enthermal_Dataset_12-04-26.csv')
+PLUS_INBOARD_CSV = os.path.join(CSV_DIR, 'IG_Config_EnthermalPlus_Inboard_Dataset_12-04-26.csv')
+PLUS_OUTBOARD_CSV = os.path.join(CSV_DIR, 'IG_Config_EnthermalPlus_Outboard_Dataset_12-04-26.csv')
 
 # Rewrites applied to coating shortcodes during import. Keep the CSV's raw
 # codes on the left; the canonical set the app consumes is on the right.

@@ -62,13 +62,12 @@ This is the intended behavior. Group C and stress test S2 assert against this co
 | U-value IP / R-value | `match.uvalIP` / `match.rval` — must show `"—"` when `match.cen` |
 | SHGC / g-Factor value | `match.gFactor` if `match.cen`, else `match.shgc` |
 | SHGC label text | `"g-Factor"` if `match.cen`, `"SHGC"` if not |
-| OITC label text | `"Rw"` if `match.cen`, `"OITC"` if not |
+| OITC / Rw values | Dual static columns (no label switch). `ENTHERMAL_ACOUSTIC` lookup; OITC value populated & Rw `"—"` in NFRC, reversed in CEN |
 | Tvis %, RoutVis %, T-UV % | corresponding `match.*` |
-| OITC/Rw value | `ENTHERMAL_ACOUSTIC` lookup |
 | CEN/NFRC toggle | `checked` matches `match.cen`; `.locked` present when `match.cen` |
 | Gas-fill round-trip | `match.gas` matches radio selection (catches silent Air→Argon fallback) |
 | Cross-section labels | from `match.glass[i]` |
-| Color card L/a/b | `match.extL/A/B` (or `intL/A/B` flipped). **Format uses NBSP (\xa0) between values**, not plain spaces: `L* X.Y \xa0 a* X.Y \xa0 b* X.Y`. |
+| Color card | Static sky image (`#colorRenderImg`); the sky toggle swaps `src` among `Clear/Overcast/Cloudy_Set3.png` (default Overcast). **No per-config L/a/b readout or flip** — that UI was removed. |
 | Dropdown option set | unique coatings at current thickness |
 | Cascade disabled state | predicate |
 
@@ -199,7 +198,7 @@ The agent does **not** silently rewrite the plan mid-run. Each correction goes i
 
 ## 7. Catches / doesn't catch
 
-**Catches:** filter predicate bugs (naive + golden, independently); display drift; cascade resets; S4/S5 surface; placement state leaks; CEN auto-flip driven by S2 SSG identity; CEN value display; label switching (SHGC↔g-Factor, OITC↔Rw); silent gas-fill fallback; Air/Argon coverage; empty-coating guard (via cascade-clear path); cleared-selection contract violations; upstream-disable defense (C4); unreachable new products; runtime JS errors; manufacturer prefix; glass color fallback; CEN data integrity; matrix entries that reference nonexistent combinations (caught at pre-flight, not mid-run); coating-identity vs S2-driven CEN flip bugs (G6 negative test).
+**Catches:** filter predicate bugs (naive + golden, independently); display drift; cascade resets; S4/S5 surface; placement state leaks; CEN auto-flip driven by S2 SSG identity; CEN value display; SHGC↔g-Factor label switch and OITC/Rw value-blanking by mode; silent gas-fill fallback; Air/Argon coverage; empty-coating guard (via cascade-clear path); cleared-selection contract violations; upstream-disable defense (C4); unreachable new products; runtime JS errors; manufacturer prefix; glass color fallback; CEN data integrity; matrix entries that reference nonexistent combinations (caught at pre-flight, not mid-run); coating-identity vs S2-driven CEN flip bugs (G6 negative test).
 
 **Doesn't catch:** visual fidelity, color perception, font/layout; CEN dimmed-label opacity; true render-loop races (S2/S3 approximate); print styles; animation timing; alternate viewports; whether cleared-selection is the *desired* UX (the plan asserts it as the contract — that's a product decision).
 
@@ -226,6 +225,6 @@ The agent does **not** silently rewrite the plan mid-run. Each correction goes i
 2. `python -m http.server --bind 127.0.0.1 8000` in repo root (separate terminal)
 3. `Automated Test/golden.json` populated (A9 uses CEN schema)
 4. Naive predicate reimplementation in test runner
-5. Color display format uses NBSP separators — predicate comparator must match: `L* X.Y \xa0 a* X.Y \xa0 b* X.Y`
+5. Color card is now a static sky image with a Clear/Overcast/Cloudy toggle — assert `#colorRenderImg.src` swaps per option (default Overcast). The old per-config L/a/b readout and flip have been removed.
 6. ≥250ms wait after any placement toggle flip (150ms intentional fade)
 7. Plus-outboard predicate must key on `glass[0].substrate` (default Clear for Group E)

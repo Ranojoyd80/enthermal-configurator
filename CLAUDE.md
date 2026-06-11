@@ -8,10 +8,10 @@
 ## 1. Architecture — Non-Negotiable Constraints
 
 - **Single HTML file for all code.** All application code lives in one `.html` file (~104 KB) — all CSS in a `<style>` block, all JS in a `<script>` block. There are no external CSS or JS files.
-- **Data lives in external JSON.** Product data is split into three files in `data/` (`enthermal.json`, `enthermal-plus-inboard.json`, `enthermal-plus-outboard.json`) and loaded at runtime via `fetch()`. The data is *not* embedded in the HTML. Because of the `fetch()` calls, the app **must be served over HTTP(S)** — opening it via `file://` loads blank. See [HOW-TO-RUN.txt](HOW-TO-RUN.txt) and [HOSTING.md](HOSTING.md).
-- **Zero dependencies.** No React, no Tailwind, no npm, no build step (the CSV→JSON Python script in `ProductData/` is a data-prep tool, not a frontend build step). The only external runtime resource is Google Fonts CDN.
+- **Data lives in external JSON.** Product data is split into three files in `App_Data/` (`enthermal.json`, `enthermal-plus-inboard.json`, `enthermal-plus-outboard.json`) and loaded at runtime via `fetch()`. The data is *not* embedded in the HTML. Because of the `fetch()` calls, the app **must be served over HTTP(S)** — opening it via `file://` loads blank. See [HOW-TO-RUN.txt](HOW-TO-RUN.txt) and [HOSTING.md](HOSTING.md).
+- **Zero dependencies.** No React, no Tailwind, no npm, no build step (the CSV→JSON Python script in `Data_Pipeline/` is a data-prep tool, not a frontend build step). The only external runtime resource is Google Fonts CDN.
 - **Vanilla stack only.** HTML5, CSS3, JavaScript ES6. No frameworks, no libraries, no transpilation.
-- **No new separate files.** Keep CSS and JS in the HTML. Don't create standalone `.css` or `.js` files. New `.json` data files are added only as part of the established `data/` + `csv_to_json.py` pipeline.
+- **No new separate files.** Keep CSS and JS in the HTML. Don't create standalone `.css` or `.js` files. New `.json` data files are added only as part of the established `App_Data/` + `csv_to_json.py` pipeline.
 
 When the Figma MCP returns React + Tailwind code (its default), **translate it** into the patterns described below. Do not paste React/Tailwind output directly.
 
@@ -191,9 +191,9 @@ Do NOT introduce any font sizes outside this scale.
 ## 5. JavaScript Patterns
 
 ### Data Storage
-- Data is loaded at startup from three external JSON files via `fetch()` (see line ~541): `data/enthermal.json`, `data/enthermal-plus-inboard.json`, `data/enthermal-plus-outboard.json`
+- Data is loaded at startup from three external JSON files via `fetch()` (see line ~541): `App_Data/enthermal.json`, `App_Data/enthermal-plus-inboard.json`, `App_Data/enthermal-plus-outboard.json`
 - The fetches resolve into the in-memory arrays (`DATA`, `DATA_PLUS_IN`, `DATA_PLUS_OUT`); all init runs inside the `fetch().then()` callback
-- The JSON is generated from the CSV sources in `ProductData/` by `csv_to_json.py` — never hand-edit the JSON; change the CSV/script and regenerate
+- The JSON is generated from the CSV sources in `Data_Pipeline/` by `csv_to_json.py` — never hand-edit the JSON; change the CSV/script and regenerate
 - Derived fields computed at runtime: `outerThickness`, `outerColorName`, `innerThickness`
 
 ### Cascading Filter Logic
@@ -236,9 +236,10 @@ Both tabs implement constraint propagation — each selection filters downstream
 ```
 
 ### Color Rendering
-- CIE L*a*b* → XYZ (D65 illuminant) → Linear sRGB → Gamma correction → 8-bit RGB
-- Glass display uses a 3-stop gradient (lighter → base → darker) for depth
-- Flip button toggles between exterior reflected and interior transmitted color
+- The **Exterior Color** card shows a **static exterior sky image** (`App_Data/Anchor_Renders/*_Set3.png`) with a Clear/Overcast/Cloudy weather toggle + zoom lightbox — the same image for every config (not per-config color)
+- The earlier runtime `labToRgb()` Lab→sRGB gradient renderer and the flip/Lab-readout UI have been **removed**
+- Per-config CIE L\*a\*b\* values (`extL/A/B`, `intL/A/B`) remain in the data and feed the JND clustering; per-config photoreal renders are the planned next step (see `CLUSTERING_PROCEDURE.md`)
+- The cross-section glass panes are still tinted from substrate via `getGlassColor()`
 
 ---
 
@@ -281,7 +282,7 @@ Both tabs implement constraint propagation — each selection filters downstream
 - ❌ Do NOT split into multiple files unless explicitly requested
 - ❌ Do NOT use `localStorage`, `sessionStorage`, or cookies
 - ❌ Do NOT add font sizes outside the 6-size scale (9/11/13/15/25/32)
-- ❌ Do NOT hand-edit the JSON in `data/` — regenerate it from the CSVs via `csv_to_json.py`
+- ❌ Do NOT hand-edit the JSON in `App_Data/` — regenerate it from the CSVs via `csv_to_json.py`
 - ❌ Do NOT use `display: none/block` to toggle coating lines — use `opacity` transitions
 - ❌ Do NOT use `getBoundingClientRect` without forcing reflow first (`void el.offsetWidth`)
 
@@ -304,9 +305,9 @@ When `/implement-design` returns Figma-derived code:
 
 This is the **LuxWall Enthermal™ Product Configurator** — a technical sales tool for architects, specifiers, and the LuxWall sales team. It displays thermal performance metrics (U-value, SHGC, Tvis, R-value, OITC) for vacuum insulated glass (VIG) configurations.
 
-**Current tabs:** Enthermal™ (60 configs), Enthermal Plus™ (36+ configs), Enthermal Spandrel (disabled/placeholder)
+**Current tabs:** Enthermal™ (98 configs), Enthermal Plus™ (6,764 configs — 4,748 inboard + 2,016 outboard). There are two tabs; an earlier Spandrel placeholder tab has been removed.
 
-**Data source:** LBNL Windows 7 / PyWinCalc calculations exported to CSV (`ProductData/`), converted to the JSON files in `data/` by `csv_to_json.py`, and loaded at runtime via `fetch()`.
+**Data source:** LBNL Windows 7 / PyWinCalc calculations exported to CSV (`Data_Pipeline/`), converted to the JSON files in `App_Data/` by `csv_to_json.py`, and loaded at runtime via `fetch()`.
 
 **Accuracy is critical.** All displayed performance values are validated against official LuxWall product data sheets (98%+ match rate). Never modify, round, or truncate data values.
 

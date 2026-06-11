@@ -1,5 +1,13 @@
 # Test Report — Enthermal Configurator UI Regression
 
+> **Historical record — do not rewrite.** This documents two runs against specific
+> past commits (999cd6f on 2026-04-12, 45fc962 on 2026-04-14) and reflects the app
+> *as it was then*. The app has since changed — most notably the color card was
+> reworked into a static sky-image viewer, so the per-config `colorInfo` L\*a\*b\*
+> readout and the NBSP color-format finding (referenced below) no longer apply. For
+> the current expectations, see [TEST-PLAN.md](TEST-PLAN.md); this file is kept for
+> provenance.
+
 > Consolidated report covering two runs of the plan. Run 1 used the v2 plan and surfaced the plan corrections that produced v3; Run 2 used v3 (now the unified TEST-PLAN.md) and surfaced a further two plan corrections, now baked into the plan.
 
 ## Overview

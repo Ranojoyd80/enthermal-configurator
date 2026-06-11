@@ -24,7 +24,7 @@
 
 | Element | Description | CSS / ID |
 |---------|-------------|----------|
-| Product Tabs | Enthermal™ / Enthermal Plus™ / Enthermal Spandrel tabs | `.product-tab` |
+| Product Tabs | Enthermal™ / Enthermal Plus™ (two tabs; the Spandrel tab has been removed) | `.product-tab`, `data-tab="enthermal"` / `data-tab="enthermal-plus"` |
 
 ### Config Panel — Enthermal™
 
@@ -108,10 +108,9 @@ Example: **5/5 mm** Enthermal **LoE³ 366** (S2) outboard with **LoE³ 366** (S5
 | Tvis | Visible Transmittance (%) | `#metricTvis` |
 | Rout,vis | Exterior Visible Reflectance (%) | `#metricRoutVis` |
 | TUV | UV Transmittance (%) — right-justified, two-line unit text | `#metricTuv` |
-| OITC Card | Outside-Inside Transmission Class (relabeled "Rw" in CEN) | `.metric-card` (4th) |
-| OITC Value | Acoustic rating value | `#metricTdw` |
-| OITC Label | "OITC" or "Rw" (CEN) | `#oitcLabel` |
-| OITC Unit | "Outside-Inside Transmission" or "Weighted Sound Reduction" (CEN) | `#oitcUnit` |
+| OITC / Rw Card | Dual-value acoustic card with two **static** columns: OITC (left) and R<sub>w</sub> (right). Both labels always show; the value of whichever standard is inactive blanks to "—" | `.metric-card` (4th) |
+| OITC Value | Outside-Inside Transmission Class — populated in NFRC mode, "—" in CEN | `#metricTdw` |
+| Rw Value | Weighted Sound Reduction — populated in CEN mode, "—" in NFRC | `#metricRw` |
 | Card Label | Gray header text above each value | `.metric-label` |
 | Card Value | Blue gradient number (25px) — fade animation on update | `.metric-value` |
 | Card Unit | Small gray unit text below value | `.metric-unit` |
@@ -190,16 +189,21 @@ Example: **5/5 mm** Enthermal **LoE³ 366** (S2) outboard with **LoE³ 366** (S5
 
 ---
 
-## Color Card
+## Color Card (Exterior Color)
+
+The card now shows a **static exterior sky photograph** with a weather toggle and a
+zoom lightbox — not a computed Lab→RGB gradient. (The old `#fvGlass` gradient, flip
+button, and `#colorInfo` Lab readout have been removed.) See
+[color-rendering.md](color-rendering.md) for full detail.
 
 | Element | Description | CSS / ID |
 |---------|-------------|----------|
-| Card Header | "Exterior Reflected Color" or "Interior Transmitted Color" | `#colorViewTitle` |
-| Flat Window | Rectangle with dark frame showing glass color | `.window-flat` |
-| Glass Fill | Gradient-colored glass area (from L\*a\*b\* data) | `#fvGlass` |
-| Color Info | L\*a\*b\* values text | `#colorInfo` |
-| Flip Button | Toggle between Reflected / Transmitted color | `#flipBtn` |
-| Flip Label | "FLIP" text below the button | `.flip-label` |
+| Card Header | "Exterior Color" (static) | `#colorViewTitle` |
+| Sky Toggle | Pill toggle: Clear / Overcast / Cloudy weather backdrop | `#skyToggle`, `.sky-toggle-option[data-img]` |
+| Toggle Thumb | Teal sliding pill behind the active option | `#skyThumb` |
+| Render Image | The exterior sky photo (`*_Set3.png`); `src` swaps with the toggle, default Overcast | `#colorRenderImg` |
+| Zoom Button | Magnifier button to open the lightbox | `#colorZoomBtn` |
+| Zoom Lightbox | Full-screen overlay; prev/next or ←/→ step through the three sky conditions | `#imgZoomOverlay`, `#imgZoomFull`, `#imgZoomPrev`, `#imgZoomNext`, `#imgZoomClose` |
 
 ---
 
@@ -212,7 +216,7 @@ When CEN is active:
 - U-Factor (IP) value shows "—" (metric remains visible, value blanked)
 - R-Value shows "—" (metric remains visible, value blanked)
 - SHGC label → "g-Factor", value displays `gFactor`, unit → "Solar Factor"
-- OITC label → "R<sub>w</sub>", unit → "Weighted Sound Reduction", value uses `rw` from acoustic lookup
+- OITC value blanks to "—"; the R<sub>w</sub> column (always present) is populated from the `rw` acoustic lookup. (NFRC mode is the reverse: OITC shown, R<sub>w</sub> blank.)
 - Selecting a non-CEN coating automatically flips back to NFRC and restores all original values and labels
 
 ## Placement Toggle Behavior (Plus Tab)

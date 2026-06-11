@@ -72,5 +72,5 @@ All of the following were verified to match between the two toolchains before ar
 - PyWinCalc driver: `workflow_1_calculate_properties.py` (separate repo)
 - Config generator: `workflow_0_generate_configs.py` (separate repo)
 - Product data: `products/*.json` (downloaded from IGSDB)
-- Generated CSV consumed by configurator: `ProductData/IG_Config_EnthermalPlus_Inboard_Dataset_12-04-26.csv` etc.
-- Earlier (incorrect) diagnosis now superseded: `docs/pywincalc-ufactor-environment-issue.md` — can be deleted.
+- Generated CSV consumed by configurator: `Data_Pipeline/1_Source_CSVs/IG_Config_EnthermalPlus_Inboard_Dataset_12-04-26.csv` etc.
+- An earlier (incorrect) environment-mismatch diagnosis was superseded by this document and has since been removed.

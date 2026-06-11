@@ -1,6 +1,8 @@
 # Clustering & Delivery — How 6,862 Configs Become 77 Renders
 
-> The full render pipeline outside Blender: the algorithm that collapses every product configuration onto a small set of render anchors (Part 1), and how the configurator swaps the right render in (Part 2). The clustering is implemented in [recluster_at_jnd.py](ProductData/recluster_at_jnd.py); the numbers here reflect what that script actually produces against the current dataset.
+> The full render pipeline outside Blender: the algorithm that collapses every product configuration onto a small set of render anchors (Part 1), and the planned delivery system for swapping the right render into the configurator (Part 2). The clustering is implemented in [recluster_at_jnd.py](Data_Pipeline/3_Clustering/recluster_at_jnd.py); the numbers here reflect what that script actually produces against the current dataset.
+>
+> **Status:** Part 1 is live — the script runs and produces the 77 anchors today. Part 2 is a **forward-looking design, not yet implemented**: the current app still renders the color card from a computed gradient over the Set 3 sky photos, and does **not** yet fetch `cluster_map.json` or load Blender renders. Treat Part 2 as the integration plan.
 
 ---
 
@@ -31,10 +33,10 @@ Two important choices:
 
 Five steps, all deterministic (no randomness — identical output every run). Function names link to the implementation.
 
-### Step 1 — Collapse duplicates · [`unique_points`](ProductData/recluster_at_jnd.py)
+### Step 1 — Collapse duplicates · [`unique_points`](Data_Pipeline/3_Clustering/recluster_at_jnd.py)
 6,862 configs reduce to **3,133 distinct colors** (many configs share an exact exterior color). We deduplicate, remembering how many configs sit on each point (`weight`), and sort by Lab so everything downstream is reproducible.
 
-### Step 2 — Cover the space · [`farthest_first_cover`](ProductData/recluster_at_jnd.py)
+### Step 2 — Cover the space · [`farthest_first_cover`](Data_Pipeline/3_Clustering/recluster_at_jnd.py)
 The core. A greedy **k-center cover** (Gonzalez heuristic):
 
 1. **Seed** with one anchor (the lexicographically smallest point — deterministic).
@@ -45,10 +47,10 @@ The core. A greedy **k-center cover** (Gonzalez heuristic):
 
 It keeps planting an anchor on whatever color is currently most uncovered. Because each new anchor targets the worst offender, anchors spread efficiently. The loop *cannot exit* while any point exceeds ΔE 2 — that's what makes the guarantee hold by construction. Lands ~73 anchors.
 
-### Step 3 — Recenter each cluster · [`chebyshev_center`](ProductData/recluster_at_jnd.py)
+### Step 3 — Recenter each cluster · [`chebyshev_center`](Data_Pipeline/3_Clustering/recluster_at_jnd.py)
 Farthest-first anchors tend to sit at cluster *edges* (they were chosen for being extreme). An edge anchor still satisfies the guarantee but is a poor representative image. So for each cluster we re-pick the anchor as the member whose **worst-case distance to all other members is smallest** (the discrete 1-center) — the most central real config, the best single stand-in. Lowers average error without changing cluster contents.
 
-### Step 4 — Repair the guarantee · [`repair`](ProductData/recluster_at_jnd.py)
+### Step 4 — Repair the guarantee · [`repair`](Data_Pipeline/3_Clustering/recluster_at_jnd.py)
 Recentering can shift which anchor is nearest for a few edge points and, rarely, push one just past ΔE 2. So: while any point exceeds 2.0 from its nearest anchor, promote it to a new anchor and re-check. This only *adds*, so it always terminates — and restores the hard guarantee. This step is why the final count is **77, not 73**: 4 extra anchors bought to keep the promise airtight.
 
 ### Step 5 — Assign & emit
@@ -56,10 +58,11 @@ Every color (and through it, all 6,862 configs) is assigned to its nearest ancho
 
 | File | Contents |
 |---|---|
-| [anchors.csv](ProductData/anchors.csv) | The 77 render targets — each a real stack for Blender, with color + member stats |
-| [cluster_assignments.csv](ProductData/cluster_assignments.csv) | All 6,862 configs → cluster_id, code, `is_anchor`, `distance_to_anchor_dE` |
-| [cluster_map.json](ProductData/cluster_map.json) | `"L_a_b" → code` lookup the front-end uses at runtime |
-| [clustering_report.txt](ProductData/clustering_report.txt) | Anchor count, ΔE stats, per-anchor breakdown |
+| [anchors.csv](Data_Pipeline/3_Clustering/anchors.csv) | The 77 render targets — each a real stack for Blender, with color + member stats |
+| [anchors.json](Data_Pipeline/3_Clustering/anchors.json) | The same 77 anchors, structured, with the parsed renderable `stack` per anchor (consumed by the anchor tooling, e.g. `build_anchor_render_configs.py`) |
+| [cluster_assignments.csv](Data_Pipeline/3_Clustering/cluster_assignments.csv) | All 6,862 configs → cluster_id, code, `is_anchor`, `distance_to_anchor_dE` |
+| [cluster_map.json](Data_Pipeline/3_Clustering/cluster_map.json) | `"L_a_b" → code` lookup **intended for** front-end runtime use (Part 2 — not yet wired into the app) |
+| [clustering_report.txt](Data_Pipeline/3_Clustering/clustering_report.txt) | Anchor count, ΔE stats, per-anchor breakdown |
 
 ---
 
@@ -130,9 +133,9 @@ next-nearest anchor (anchor_20): ΔE = 1.940
 ## Reproducing
 
 ```
-python ProductData/recluster_at_jnd.py
+python Data_Pipeline/3_Clustering/recluster_at_jnd.py
 ```
-Reads the three `data/*.json` files, writes the four outputs into [ProductData/](ProductData/). No dependencies beyond the Python standard library. Deterministic — re-running produces byte-identical output. To re-pin the anchor count after a data change, regenerate the JSON ([csv_to_json.py](ProductData/csv_to_json.py)) and re-run this script.
+Reads the three `App_Data/*.json` files, writes the five outputs above into [Data_Pipeline/3_Clustering/](Data_Pipeline/3_Clustering/). No dependencies beyond the Python standard library. Deterministic — re-running produces byte-identical output. To re-pin the anchor count after a data change, regenerate the JSON ([csv_to_json.py](Data_Pipeline/2_Conversion/csv_to_json.py)) and re-run this script.
 
 To target a different tolerance, change `TOL` at the top of the script. **ΔE 2 → 77** is the verified full-pipeline figure (cover + recenter + repair). For rough scale at other tolerances, the bare greedy cover gives ΔE 4 → 19 · ΔE 3 → 37 · ΔE 1.5 → 119 (recenter+repair would nudge each up a few); re-run the script at the chosen `TOL` to pin the exact number.
 
@@ -148,7 +151,7 @@ A user always sees the **exact** optical numbers (`uval`, `routVis`, `tvis`, Lab
 
 ## Resolving a config to its code — runtime map, no JSON edits
 
-[CLAUDE.md](CLAUDE.md) forbids hand-editing `data/*.json`, so the code is **not** stored per-record. Instead the front-end fetches [cluster_map.json](ProductData/cluster_map.json) once and looks the code up by the record's own Lab values:
+[CLAUDE.md](CLAUDE.md) forbids hand-editing `App_Data/*.json`, so the code is **not** stored per-record. Instead the front-end fetches [cluster_map.json](Data_Pipeline/3_Clustering/cluster_map.json) once and looks the code up by the record's own Lab values:
 
 ```js
 // labKey MUST match the script's format exactly: '%.2f_%.2f_%.2f'
@@ -275,7 +278,7 @@ If this becomes a public high-traffic marketing tool, Cloudflare R2 ($0/month at
 | # | Item | Status |
 |---|---|---|
 | 1 | Run clustering against current data; pin anchor count | **done — 77 anchors, max ΔE 1.89** |
-| 2 | Config → code resolution strategy | **done — runtime `cluster_map.json` lookup** |
+| 2 | Config → code resolution strategy | **decided — runtime `cluster_map.json` lookup**; map is generated, but the lookup is not yet wired into the app |
 | 3 | Create `luxwall-glass-assets` repo + enable Pages | not started |
 | 4 | Decide HDR UI model — fixed / toggle / cycle | not started |
 | 5 | Render the anchor × HDR batch | gated on shader validation (`CLAUDE_GLASS_SHADER.md`) and farm selection |

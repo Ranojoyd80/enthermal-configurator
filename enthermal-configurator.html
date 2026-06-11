@@ -461,15 +461,15 @@ body{font-family:var(--font-body);background:var(--lw-gray-50);color:var(--lw-da
       <div class="viz-card viz-color">
         <div class="viz-card-header" style="justify-content:space-between;padding:13.5px 18px"><span id="colorViewTitle">Exterior Color</span>
           <div class="sky-toggle" id="skyToggle">
-            <span class="sky-toggle-option" data-img="data/Clear_Set3.png">Clear</span>
-            <span class="sky-toggle-option active" data-img="data/Overcast_Set3.png">Overcast</span>
-            <span class="sky-toggle-option" data-img="data/Cloudy_Set3.png">Cloudy</span>
+            <span class="sky-toggle-option" data-img="App_Data/Anchor_Renders/Clear_Set3.png">Clear</span>
+            <span class="sky-toggle-option active" data-img="App_Data/Anchor_Renders/Overcast_Set3.png">Overcast</span>
+            <span class="sky-toggle-option" data-img="App_Data/Anchor_Renders/Cloudy_Set3.png">Cloudy</span>
             <span class="sky-toggle-thumb" id="skyThumb"></span>
           </div>
         </div>
         <div class="viz-card-body" style="flex-direction:column;gap:0;background:var(--lw-gray-50);padding:0">
           <div class="color-img-wrap" style="position:relative;flex:1;min-height:0;display:flex">
-            <img src="data/Overcast_Set3.png" alt="Exterior color rendering" id="colorRenderImg" style="width:100%;height:100%;object-fit:cover;object-position:bottom;display:block;cursor:zoom-in">
+            <img src="App_Data/Anchor_Renders/Overcast_Set3.png" alt="Exterior color rendering" id="colorRenderImg" style="width:100%;height:100%;object-fit:cover;object-position:bottom;display:block;cursor:zoom-in">
             <button id="colorZoomBtn" class="color-zoom-btn" type="button" title="Enlarge image" aria-label="Enlarge image"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
           </div>
           <div style="font-size:11px;color:var(--lw-gray-400);line-height:1.5;text-align:center;padding:8px 0;font-style:italic;width:220px;margin:0 auto">Colors shown on the screen should not be used as a substitute for a mock-up.</div>
@@ -544,9 +544,9 @@ function postProcessData() {
 
 // Load all JSON data
 Promise.all([
-  fetch('data/enthermal.json').then(function(r) { return r.json(); }),
-  fetch('data/enthermal-plus-inboard.json').then(function(r) { return r.json(); }),
-  fetch('data/enthermal-plus-outboard.json').then(function(r) { return r.json(); })
+  fetch('App_Data/enthermal.json').then(function(r) { return r.json(); }),
+  fetch('App_Data/enthermal-plus-inboard.json').then(function(r) { return r.json(); }),
+  fetch('App_Data/enthermal-plus-outboard.json').then(function(r) { return r.json(); })
 ]).then(function(results) {
   DATA = results[0];
   DATA_PLUS_IN = results[1];
@@ -656,7 +656,7 @@ function iguWeight(totalGlassMM){return (2.5*totalGlassMM).toFixed(1)}
 // Embodied carbon (kg CO₂e/m²) lookup by total glass thickness (sum of lites, mm).
 // NFRC mode shows Cradle-Gate (A1–A3); CEN mode shows Cradle-Grave (full life cycle).
 // 9 mm / 11 mm are linear midpoints between published/calculated points.
-// Source: ProductData/Product Data Constants.md. Enthermal Plus = no data yet → '—'.
+// Source: Data_Pipeline/Product Data Constants.md. Enthermal Plus = no data yet → '—'.
 const EMBODIED_CARBON={
   8:{nfrc:29.3,cen:34.6},
   9:{nfrc:33.9,cen:39.6},

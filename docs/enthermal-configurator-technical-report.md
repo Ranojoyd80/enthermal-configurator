@@ -16,7 +16,7 @@ The configurator was developed iteratively through a conversational AI-assisted 
 | V16 | Expanded Enthermal data to 60 records, Plus data to 36 records |
 | V21 | NFRC/CEN standard toggle, S4/S5 surface toggle redesigned as slider, OITC metric card, Embodied Carbon and IGU Weight info bar |
 | V22 | Centering bug fix — synchronous reflow (`void cs.offsetWidth`), S4/S5 opacity transitions |
-| Post-V22 | Migrated data from embedded JS arrays to external JSON files (`data/*.json`). Stack-based data schema with `glass[]`, `vacuum`, `gas` layers. Coating shortcodes (C366, SB70, etc.) with display name lookups. |
+| Post-V22 | Migrated data from embedded JS arrays to external JSON files (`App_Data/*.json`). Stack-based data schema with `glass[]`, `vacuum`, `gas` layers. Coating shortcodes (C366, SB70, etc.) with display name lookups. |
 | Current | IG_Config dataset migration — 98 Enthermal + 4,748 Plus Inboard + 2,016 Plus Outboard rows. 14 coatings, 10 substrates. Inboard/Outboard placement toggle with separate cascade logic. Air/Argon gas fill toggle. CEN auto-flip with per-row `cen`/`gFactor`/`uvalCEN` fields. |
 
 ### Data Validation
@@ -38,22 +38,26 @@ All data is sourced from LBNL Windows 7 / PyWinCalc calculations and cross-check
 | Framework | None — zero dependencies, no build step |
 | Typography | Google Fonts: Plus Jakarta Sans (display), DM Sans (body) |
 | Data | External JSON files loaded via `fetch()` at startup |
-| Hosting | Static file hosting — HTML + `data/` folder |
+| Hosting | Static file hosting — HTML + `App_Data/` folder |
 | External deps | Google Fonts CDN only |
 
 ### File Structure
 
 ```
-enthermal-configurator.html    — ~99 KB (1,415 lines)
-├── <style>     — 129 lines of CSS
-├── <body>      — 333 lines of semantic HTML
-└── <script>    — 943 lines (43 named functions + 3 IIFEs)
+enthermal-configurator.html    — ~104 KB (1,515 lines)
+├── <style>     — CSS (design tokens + component styles)
+├── <body>      — semantic HTML
+└── <script>    — named functions + IIFEs (vanilla ES6)
 
-data/
-├── enthermal.json             — 98 Enthermal configs
-├── enthermal-plus-inboard.json — 4,748 Plus Inboard configs
-└── enthermal-plus-outboard.json — 2,016 Plus Outboard configs
+App_Data/
+├── enthermal.json             — 98 Enthermal configs (~71 KB)
+├── enthermal-plus-inboard.json — 4,748 Plus Inboard configs (~4.5 MB)
+├── enthermal-plus-outboard.json — 2,016 Plus Outboard configs (~1.9 MB)
+└── Anchor_Renders/
+    └── *_Set3.png             — 3 exterior sky images (Clear / Overcast / Cloudy)
 ```
+
+*(Per-section line counts drift as the single file evolves; treat the function lists below as a guide, not an exact inventory.)*
 
 ### CSS Architecture
 
@@ -81,7 +85,7 @@ data/
 | `coatingNameWithMaker(code)` | Prepend manufacturer prefix for dropdowns (e.g., `Cardinal LoE³ 366`) |
 | `layerDisplay(layer, nameFn)` | Format a glass layer for display — coating only for Clear, "coating on substrate" for branded |
 | `postProcessData()` | Attach `glass[]`, `gasType`, `secondCoating`, `secondSurface` accessors to each data row |
-| `labToRgb(L, a, b)` | CIE L\*a\*b\* → sRGB conversion (D65 illuminant) |
+| `getGlassColor(substrate)` | Map a substrate to a tint color for the **cross-section** glass panes (not the color card) |
 | `unique(arr)` | Return unique sorted values |
 | `getVal(name)` | Get checked radio button value by name attribute |
 | `populateSelect(el, items, placeholder, nameFn)` | Populate a `<select>` with options |
@@ -131,7 +135,6 @@ data/
 | `seedPlusInboardDefaults()` | Set default selections when switching to inboard mode |
 | `findPlusMatch()` | Look up exact Plus config match from active dataset |
 | `updatePlusResults(surfaceOnly)` | Populate metrics, cross-section, summary. `surfaceOnly=true` skips fade-in animation |
-| `updateColor(match)` | Compute RGB from L\*a\*b\* and update glass color display |
 | `_plusIsOutboard()` | Return placement toggle state |
 | `repositionPlusToggles()` | Reposition all Plus toggle thumbs after tab becomes visible |
 
@@ -141,12 +144,12 @@ data/
 
 | IIFE | Purpose |
 |------|---------|
-| NFRC/CEN toggle | Standard toggle with auto-flip, locking, label switching (SHGC↔g-Factor, OITC↔Rw) |
+| NFRC/CEN toggle | Standard toggle with auto-flip, locking, label switching (SHGC↔g-Factor; OITC/Rw values blank by mode) |
 | S4/S5 surface toggle | Coating surface toggle with auto-disable when only one surface is valid |
 | Placement toggle | Inboard/Outboard mode switching with UI reorder, reseed, and cross-section rearrangement |
 | Gas fill toggle | Argon/Air toggle with cascade update |
-
-**Shared utilities**: `getGlassColor()`
+| Sky-condition toggle | Swaps the color-card image between Clear / Overcast / Cloudy `*_Set3.png` |
+| Image zoom lightbox | Full-screen viewer; steps through the three sky conditions |
 
 ### Smart Filtering Logic
 
@@ -166,7 +169,7 @@ The toggle auto-flips based on the matched data row's `cen` field. CEN-enabled c
 - U-value displays `uvalCEN` instead of `uval`
 - SHGC displays `gFactor`, label changes to "g-Factor"
 - U-Factor (IP) and R-value show "—"
-- OITC label changes to "Rw"
+- The acoustic card shows R<sub>w</sub> (its value populated) while the OITC value blanks to "—"; in NFRC mode it's the reverse
 - Toggle is always locked (user cannot manually override)
 
 ---
@@ -185,9 +188,9 @@ Source data comes from LBNL Windows 7 / PyWinCalc calculations exported to CSV, 
 
 ```javascript
 Promise.all([
-  fetch('data/enthermal.json').then(r => r.json()),
-  fetch('data/enthermal-plus-inboard.json').then(r => r.json()),
-  fetch('data/enthermal-plus-outboard.json').then(r => r.json())
+  fetch('App_Data/enthermal.json').then(r => r.json()),
+  fetch('App_Data/enthermal-plus-inboard.json').then(r => r.json()),
+  fetch('App_Data/enthermal-plus-outboard.json').then(r => r.json())
 ]).then(results => {
   DATA = results[0];           // 98 rows
   DATA_PLUS_IN = results[1];   // 4,748 rows
@@ -260,15 +263,20 @@ Each record contains a `stack` array of layers plus performance metrics:
 - Surface always S5 (toggle disabled)
 - 358 CEN-enabled rows
 
-### Color Rendering Pipeline
+### Color Rendering (current state)
 
-Glass colors are stored as CIE L\*a\*b\* values and converted to sRGB at runtime:
+The **Exterior Color** card currently shows a **static exterior sky photograph**
+(`*_Set3.png`) with a Clear / Overcast / Cloudy weather toggle and a zoom lightbox.
+It is the same image for every configuration — it does **not** render per-config
+color. The earlier runtime `labToRgb()` Lab→sRGB gradient renderer (and the flip /
+Lab-readout UI) has been removed. A disclaimer below the image reminds users that
+screen colors are not a substitute for a mock-up.
 
-```
-CIE L*a*b* → XYZ (D65 illuminant) → Linear sRGB → Gamma correction → 8-bit RGB
-```
-
-The resulting RGB is used for the flat window display (with a 3-stop gradient for depth) and the displayed L\*a\*b\* values. The flip button toggles between exterior reflected (default) and interior transmitted color for the same configuration. A disclaimer note below the window reminds users that screen colors should not be used as a substitute for a mock-up.
+The per-config CIE L\*a\*b\* values (`extL/A/B`, `intL/A/B`) remain in the data and
+feed the JND color clustering; per-configuration photoreal renders are the planned
+next step (see [color-rendering.md](color-rendering.md) and
+[../CLUSTERING_PROCEDURE.md](../CLUSTERING_PROCEDURE.md)). The cross-section panes are
+still tinted from substrate color via `getGlassColor()`.
 
 ---
 
@@ -276,7 +284,7 @@ The resulting RGB is used for the flat window display (with a 3-stop gradient fo
 
 ### Current State
 
-Data is fully separated from the application. The three JSON files in the `data/` folder can be updated independently without modifying the HTML file. The UI automatically discovers available coatings, substrates, and thickness combinations from the data at runtime.
+Data is fully separated from the application. The three JSON files in the `App_Data/` folder can be updated independently without modifying the HTML file. The UI automatically discovers available coatings, substrates, and thickness combinations from the data at runtime.
 
 ### Data Pipeline
 
@@ -284,7 +292,7 @@ Data is fully separated from the application. The three JSON files in the `data/
 PyWinCalc → CSV export → Python transform script → JSON files → Deploy
 ```
 
-The Python transform scripts in the `ProductData/` folder handle:
+The Python transform scripts in the `Data_Pipeline/` folder handle:
 1. Reading PyWinCalc CSV output
 2. Parsing the Comment column for coating shortcodes and substrate names
 3. Building the stack-based JSON schema with glass/vacuum/gas layers
@@ -300,10 +308,12 @@ To add a new coating (e.g., a new Cardinal or Solarban variant):
 4. Re-run the transform script to regenerate JSON
 5. Deploy — the UI automatically picks up new coatings in the dropdowns
 
-To add Enthermal Spandrel (the currently disabled third tab):
-1. Create a `data/enthermal-spandrel.json` with the stack-based schema
+To add an Enthermal Spandrel product (there is currently **no** Spandrel tab — an
+earlier placeholder tab was removed; the app now ships two tabs, Enthermal and
+Enthermal Plus):
+1. Create a `App_Data/enthermal-spandrel.json` with the stack-based schema
 2. Add a `DATA_SPANDREL` array and corresponding filter/display functions
-3. Enable the Spandrel tab button
+3. Add and wire up a third `.product-tab` button (`data-tab="enthermal-spandrel"`)
 
 ---
 
@@ -322,7 +332,7 @@ Since the app is a single HTML file with no server-side requirements, it can be 
 | **Azure Static Web Apps** | Git integration or CLI deploy | Free tier available |
 | **Company web server** | Upload to existing IIS/Apache/Nginx server | Existing infrastructure |
 
-**Deployment is two items** — upload `enthermal-configurator.html` and the `data/` folder. No Node.js, no PHP, no database server.
+**Deployment is two items** — upload `enthermal-configurator.html` and the `App_Data/` folder. No Node.js, no PHP, no database server.
 
 ### Option B: Embed in Existing LuxWall Website
 
@@ -395,7 +405,7 @@ If the data is moved to external JSON files, add integrity hashes to verify the 
 
 ```html
 <script>
-fetch('data/enthermal.json')
+fetch('App_Data/enthermal.json')
   .then(r => r.text())
   .then(text => {
     // Verify SHA-256 hash before parsing

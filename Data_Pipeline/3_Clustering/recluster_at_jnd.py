@@ -26,11 +26,11 @@ worked example):
     Blender as-is.
 
 Inputs (read-only):
-  data/enthermal.json
-  data/enthermal-plus-inboard.json
-  data/enthermal-plus-outboard.json
+  App_Data/enthermal.json
+  App_Data/enthermal-plus-inboard.json
+  App_Data/enthermal-plus-outboard.json
 
-Outputs (written next to this script, in ProductData/):
+Outputs (written next to this script, in Data_Pipeline/3_Clustering/):
   anchors.csv             one row per anchor: code, color, member_count, stack
   cluster_assignments.csv every config -> cluster_id, code, is_anchor, dE
   cluster_map.json        { "L_a_b": code } for runtime front-end lookup
@@ -45,9 +45,11 @@ import json
 import math
 import os
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.dirname(SCRIPT_DIR)
-DATA_DIR = os.path.join(REPO_ROOT, 'data')
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))      # Data_Pipeline/3_Clustering
+REPO_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))     # up two: 3_Clustering -> Data_Pipeline -> repo
+DATA_DIR = os.path.join(REPO_ROOT, 'App_Data')
+# Outputs (anchors.*, cluster_*, clustering_report.txt) are written next to this
+# script, i.e. into 3_Clustering/.
 
 SOURCES = [
     'enthermal.json',

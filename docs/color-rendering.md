@@ -1,219 +1,94 @@
-# Glass Color Rendering — CIE L\*a\*b\* to Screen Pixels
+# Glass Color Rendering — Current State & Plan
 
-> How the Enthermal™ Configurator converts measured reflected-color data into the tinted glass preview shown in the **Glass Color** viz card.
+> How the Enthermal™ Configurator shows exterior glass appearance in the **Exterior
+> Color** viz card today, and where the per-configuration photoreal pipeline is headed.
 
-This document traces one full render cycle: from the raw L\*a\*b\* numbers stored in `DATA` / `DATA_PLUS`, through the color-space conversion, to the final CSS gradient painted onto the mock window frame.
+> **Heads-up:** an earlier version of this document described a `labToRgb()` →
+> CSS-gradient renderer painted onto a `#fvGlass` mock window. **That code has been
+> removed.** The card no longer computes color from Lab values at runtime. This
+> document reflects the current implementation.
 
 ---
 
-## 1. Where the color data lives
+## 1. What the card shows today
 
-Every configuration row in the datasets carries **two** reflected-color triplets — one for each side of the glass assembly:
+The **Exterior Color** card (`viz-color`) displays a **static exterior sky
+photograph** — a building façade scene used as a stand-in for glass appearance. It
+is **not** derived from the selected configuration's color; the same image shows for
+every config. Three weather variants are available via a toggle:
 
-| Field | Meaning |
+| Toggle option | Image | Default |
+|---|---|---|
+| Clear | `App_Data/Anchor_Renders/Clear_Set3.png` | |
+| Overcast | `App_Data/Anchor_Renders/Overcast_Set3.png` | ✓ |
+| Cloudy | `App_Data/Anchor_Renders/Cloudy_Set3.png` | |
+
+Key DOM (`enthermal-configurator.html`):
+- `#colorRenderImg` — the `<img>`; `src` swaps when the weather toggle changes (≈ line 472)
+- `#skyToggle` / `.sky-toggle-option[data-img]` / `#skyThumb` — the weather toggle (≈ line 463)
+- `#colorViewTitle` — header text, fixed to "Exterior Color"
+
+This is the **"Set 3"** image set; earlier Sets 1, 2 and 4 were evaluated and removed.
+
+---
+
+## 2. The weather toggle
+
+A pill toggle (`.sky-toggle`) with three options. Selecting one:
+
+1. moves `.active` to the chosen option,
+2. sets `#colorRenderImg.src` to that option's `data-img`,
+3. slides `#skyThumb` under the active label (width + `translateX`).
+
+The two outer options (Clear / Cloudy) are width-matched so the control is
+symmetric; Overcast keeps its natural wider width. Widths are re-equalized on resize
+and after the web font loads (glyph widths shift on font swap). See the IIFE at
+`enthermal-configurator.html` ≈ line 1476.
+
+---
+
+## 3. The zoom lightbox
+
+The image (or its magnifier button `#colorZoomBtn`) opens a full-screen lightbox
+(`#imgZoomOverlay` / `#imgZoomFull`). Inside the lightbox the user can step through
+the three sky conditions with the prev/next buttons or ← / → keys; stepping reuses
+the sky-toggle options so the small card image and the lightbox stay in sync. Escape
+or a backdrop click closes it. See the IIFE at `enthermal-configurator.html` ≈ line 1440.
+
+---
+
+## 4. Where the per-config color data lives
+
+Every configuration still carries two CIE L\*a\*b\* reflected-color triplets in the
+`App_Data/*.json` records — `extL/extA/extB` (exterior) and `intL/intA/intB` (interior),
+computed by LBNL Windows 7 / PyWinCalc under D65 / 2°. These are **not currently
+visualized** on the card, but they are the basis for the clustering that drives the
+planned render pipeline (below), and they remain available for any future readout or
+tint feature.
+
+---
+
+## 5. The plan — per-anchor photoreal renders
+
+Per-configuration appearance is intended to come from **pre-rendered Blender images**,
+not runtime math. The 6,862 configs collapse to **77 color anchors** at ΔE ≤ 2 (JND);
+each anchor is rendered against three HDR skies, and the front-end will swap in the
+right image by resolving a config's Lab color → anchor code via `cluster_map.json`.
+
+That delivery system is **designed but not yet wired into the app** — the current
+static sky photo is the interim placeholder. Full detail (the clustering algorithm,
+the `cluster_map.json` runtime lookup, the image-swap `updateColor()` pattern, hosting
+and URL conventions) is in [CLUSTERING_PROCEDURE.md](../CLUSTERING_PROCEDURE.md).
+
+---
+
+## 6. Reference — code locations
+
+| Purpose | File : approx. line |
 |---|---|
-| `extL`, `extA`, `extB` | Exterior reflected color (what you see from outside the building) |
-| `intL`, `intA`, `intB` | Interior reflected color (what you see from inside) |
+| Color card markup (`viz-color`, sky toggle, `#colorRenderImg`) | enthermal-configurator.html : 461–475 |
+| `.sky-toggle` styles | enthermal-configurator.html : 136–139 |
+| Zoom lightbox IIFE | enthermal-configurator.html : 1440 |
+| Sky-condition toggle IIFE | enthermal-configurator.html : 1476 |
 
-These are CIE 1976 L\*a\*b\* values computed by LBNL Windows 7 / PyWinCalc under the D65 illuminant and 2° observer, stored in the `data/*.json` files and loaded into `DATA` / `DATA_PLUS` at startup via `fetch()`.
-
-> **Why Lab and not RGB?** Lab is device-independent and perceptually uniform — it is the canonical output of spectral glazing calculations. The configurator converts to sRGB only at the very last step, for display.
-
----
-
-## 2. Which side is shown — the flip flag
-
-A single module-level boolean controls which triplet feeds the renderer:
-
-```js
-let showInterior = false;           // enthermal-configurator.html:553
-```
-
-The circular **FLIP** button under the color card toggles this flag:
-
-```js
-flipBtn.addEventListener('click', function(){
-  showInterior = !showInterior;
-  flipBtn.classList.toggle('active', showInterior);
-  // re-run updateColor() with the current match …
-});
-```
-*(enthermal-configurator.html:723)*
-
-When `showInterior` is `true`, the card title switches to **"Interior Reflected Color"** and the button gains its dark `.active` style.
-
----
-
-## 3. The conversion pipeline — `labToRgb(L, a, b)`
-
-Defined on one dense line at **enthermal-configurator.html:551**, this is the entire color-space conversion. Expanded for readability:
-
-```js
-function labToRgb(L, a, b) {
-  // --- Step A: Lab → XYZ (D65 whitepoint, 2° observer) ---
-  let fy = (L + 16) / 116;
-  let fx = a / 500 + fy;
-  let fz = fy - b / 200;
-
-  const d  = 6 / 29;            // CIE linearity threshold
-  const xn = 0.95047,           // D65 reference white
-        yn = 1.00000,
-        zn = 1.08883;
-
-  // Inverse of the f(t) companding function used in Lab
-  let x = xn * (fx > d ? fx*fx*fx : (fx - 16/116) * 3 * d*d);
-  let y = yn * (fy > d ? fy*fy*fy : (fy - 16/116) * 3 * d*d);
-  let z = zn * (fz > d ? fz*fz*fz : (fz - 16/116) * 3 * d*d);
-
-  // --- Step B: XYZ → linear sRGB (Bradford-adapted D65 matrix) ---
-  let rl =  3.2404542*x - 1.5371385*y - 0.4985314*z;
-  let gl = -0.9692660*x + 1.8760108*y + 0.0415560*z;
-  let bl =  0.0556434*x - 0.2040259*y + 1.0572252*z;
-
-  // --- Step C: linear sRGB → gamma-corrected sRGB (companding) ---
-  const g = c => c <= 0.0031308
-    ? 12.92 * c
-    : 1.055 * Math.pow(c, 1/2.4) - 0.055;
-
-  // --- Step D: scale to 8-bit and clamp to valid display range ---
-  return {
-    r: Math.round(Math.min(255, Math.max(0, g(rl) * 255))),
-    g: Math.round(Math.min(255, Math.max(0, g(gl) * 255))),
-    b: Math.round(Math.min(255, Math.max(0, g(bl) * 255)))
-  };
-}
-```
-
-### What each step does
-
-1. **Lab → XYZ.** Undoes the perceptual cube-root companding that Lab applies to XYZ. The piecewise branch on `d = 6/29` handles the linear segment near black where the cube-root approximation breaks down.
-2. **XYZ → linear sRGB.** A standard 3×3 matrix multiplication against the Bradford-adapted D65-to-sRGB primaries.
-3. **Linear → gamma-corrected sRGB.** Applies the sRGB transfer function so the values are ready for a display that expects gamma-encoded input. The piecewise branch at `0.0031308` again handles the dark toe.
-4. **Clamp + quantize.** Out-of-gamut Lab coordinates (common for highly saturated glass tints) can produce negative or >1.0 linear values; these get clamped into `[0, 255]` 8-bit integers.
-
-The result is a plain `{r, g, b}` object of integers ready for a CSS `rgb(...)` string.
-
----
-
-## 4. Painting the glass — `updateColor(match)`
-
-With RGB in hand, the app paints a single DOM element: `#fvGlass`. The rendering logic lives at **enthermal-configurator.html:707–719**:
-
-```js
-function updateColor(match) {
-  if (!match) match = findMatch();
-  if (!match) return;
-
-  // Pick the triplet that matches the current flip state
-  var L = showInterior ? match.intL : match.extL,
-      a = showInterior ? match.intA : match.extA,
-      b = showInterior ? match.intB : match.extB;
-
-  var rgb = labToRgb(L, a, b);
-  var side = showInterior ? 'Interior Reflected' : 'Exterior Reflected';
-
-  // Build a 3-stop gradient: lighter top-left → base → darker bottom-right
-  var r = rgb.r, g = rgb.g, bv = rgb.b;
-  var lightR = Math.min(255, r + 25),
-      lightG = Math.min(255, g + 25),
-      lightB = Math.min(255, bv + 25);
-  var darkR  = Math.max(0,   r - 10),
-      darkG  = Math.max(0,   g - 10),
-      darkB  = Math.max(0,   bv - 10);
-
-  var glassGrad =
-    'linear-gradient(170deg, ' +
-      'rgb(' + lightR + ',' + lightG + ',' + lightB + ') 0%, ' +
-      'rgb(' + r      + ',' + g      + ',' + bv     + ') 50%, ' +
-      'rgb(' + darkR  + ',' + darkG  + ',' + darkB  + ') 100%)';
-
-  document.getElementById('fvGlass').style.background  = glassGrad;
-  document.getElementById('colorViewTitle').textContent = side + ' Color';
-  document.getElementById('colorInfo').innerHTML =
-    'L* ' + L.toFixed(1) +
-    ' &nbsp; a* ' + a.toFixed(1) +
-    ' &nbsp; b* ' + b.toFixed(1);
-}
-```
-
-### Why three stops, not one flat color?
-
-A solid fill reads as "paint chip", not "glass". The ±25 / ±10 channel shifts give the pane a subtle diagonal falloff — brighter near the sun-facing corner, a touch darker at the opposite corner — which the eye parses as a reflective surface rather than a swatch.
-
-The shifts are asymmetric (**+25 up, −10 down**) on purpose: highlights should read more strongly than shadows on architectural glass, since most of the visual interest comes from reflected sky.
-
----
-
-## 5. The static sheen overlay
-
-On top of the dynamic tinted gradient sits a fixed CSS pseudo-element that never changes across configurations. Defined at **enthermal-configurator.html:101**:
-
-```css
-.window-flat-glass::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(170deg,
-    rgba(255,255,255,.18) 0%,
-    rgba(255,255,255,.05) 35%,
-    transparent           55%,
-    rgba(0,0,0,.02)      100%);
-  pointer-events: none;
-}
-```
-
-This sells the "pane of glass" illusion: a faint white highlight band across the top third plus a whisper of shadow at the bottom, identical for every configuration. Because it's a separate layer, it composites **over** the Lab-derived tint without affecting the math — swap the configuration and only the base color changes.
-
----
-
-## 6. The frame
-
-The full preview is three nested elements:
-
-```html
-<div class="window-flat">                  <!-- dark border + drop shadow -->
-  <div class="window-flat-glass" id="fvGlass"></div>
-                                           <!-- ::after sheen added by CSS -->
-</div>
-```
-
-Styled at **enthermal-configurator.html:99–101**:
-
-| Element | Role |
-|---|---|
-| `.window-flat` | 220 × 329 px window mock. `border: 10px solid #1a1d24` is the mullion, `box-shadow: 6px 10px 30px rgba(0,0,0,.18)` is the drop shadow. |
-| `.window-flat-glass` (`#fvGlass`) | Gradient carrier. `transition: background .5s` cross-fades between configurations. |
-| `.window-flat-glass::after` | Static sheen (see above). |
-
-The `.5s` background transition on `#fvGlass` is what makes color changes feel smooth when the user toggles flip or switches configurations — the browser animates between the two multi-stop gradients automatically.
-
----
-
-## 7. End-to-end render sequence
-
-Putting it together, one user interaction — say, flipping the side button — triggers:
-
-1. `flipBtn` click handler toggles `showInterior` → sets `.active` class.
-2. Handler calls `updateColor(match)` (or `findPlusMatch()` for the Plus tab).
-3. `updateColor` selects the correct L\*/a\*/b\* fields.
-4. `labToRgb` runs Lab → XYZ → linear sRGB → gamma sRGB → 8-bit RGB.
-5. Helper math derives the `+25` highlight and `−10` shadow stops.
-6. The composed `linear-gradient(...)` string is assigned to `#fvGlass.style.background`.
-7. Browser cross-fades the new gradient over 500 ms via CSS transition.
-8. Title and L\*a\*b\* readout under the swatch update in the same call.
-
-No canvas, no SVG, no image assets — the entire glass visualization is CSS-plus-JS math against hardcoded Lab values from LBNL calculations.
-
----
-
-## 8. Reference — code locations
-
-| Purpose | File : Line |
-|---|---|
-| Flip state flag | enthermal-configurator.html:553 |
-| `labToRgb()` one-liner | enthermal-configurator.html:551 |
-| `updateColor()` painter | enthermal-configurator.html:707–719 |
-| `flipBtn` click handler | enthermal-configurator.html:723 |
-| `.window-flat-glass` / `::after` styles | enthermal-configurator.html:99–101 |
-| `#fvGlass` DOM element | enthermal-configurator.html:455 |
-| Flip button + label | enthermal-configurator.html:460–461 |
+*(Line numbers are approximate — the app is a single evolving file; search by ID if they've drifted.)*

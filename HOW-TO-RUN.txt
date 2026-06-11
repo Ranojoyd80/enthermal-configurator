@@ -48,6 +48,7 @@ JSON data files to load normally.
 Notes
 -----
 - Python 3 is required for the default method above
-- The data/ folder must be in the same directory as the HTML file
+- The "App_Data" folder must be in the same directory as the HTML file
+  (it holds the three JSON files plus the Anchor_Renders image subfolder)
 - All three JSON files must be present: enthermal.json,
   enthermal-plus-inboard.json, enthermal-plus-outboard.json
