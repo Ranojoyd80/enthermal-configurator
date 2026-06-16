@@ -206,14 +206,17 @@ def main():
 
     out = {
         'title': 'AnchorRender_Configs',
-        'description': ('Build configuration (PyWinCalc input) for the 77 JND color-cluster '
-                        'render anchors. Optical stack only -- NO performance/color outputs; '
-                        'PyWinCalc computes those. Makeup from App_Data/*.json; coating surface '
-                        'numbers joined from the Source CSVs.'),
+        'description': ('Build configuration (PyWinCalc input) for the JND color-cluster '
+                        'render anchors (CIEDE2000, partitioned by exterior substrate). '
+                        'Optical stack only -- NO performance/color outputs; PyWinCalc computes '
+                        'those. Makeup from App_Data/*.json; coating surface numbers joined from '
+                        'the Source CSVs.'),
         'optics_key': ('Per layer, lite_nfrc_id is the coated-product NFRC/IGDB id (unique per '
                        'glass+coating). Resolve via NFRC->IGSDB to get the coated optics; orient '
                        'using coating.surface / pane_face.'),
-        'tolerance_dE76': anchors_doc.get('tolerance_dE76'),
+        'tolerance_dE2000': anchors_doc.get('tolerance_dE2000'),
+        'metric': anchors_doc.get('metric'),
+        'partitioned_by': anchors_doc.get('partitioned_by'),
         'total_configs_covered': anchors_doc.get('total_configs'),
         'anchor_count': len(out_anchors),
         'layer_order': 'exterior -> interior; surfaces S1..S2N numbered from the exterior face',

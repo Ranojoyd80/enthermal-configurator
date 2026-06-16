@@ -157,3 +157,38 @@ All quantities are **front-side, specular (`direct_direct`), W5 photopic/color**
 ```
 
 A single face-on `FAIL` halts trust in that anchor's Lab values too — fix the stack definition and re-run that anchor before passing data downstream.
+
+---
+
+## 8. Anchor #0 verification fixture
+
+Anchor #0 is **not one of the 77 production anchors** — its outer coating (ECLAZ II) does not appear in the production set. The script must define its stack as a separate verification fixture, built and checked **before** the production loop runs.
+
+### 8.1 Stack definition
+
+```
+Outer:  ECLAZ II on 6mm clear
+Gap:    Air, 8.75mm                  (nominal-air placeholder per §2)
+Center: Clear, 6mm
+Gap:    Vacuum, 0.25mm → model as nominal-air placeholder per §2
+Inner:  LoE² 270 on 5mm, coating on S5
+```
+
+Enthermal Plus VIG-inboard configuration. The vacuum gap is optically irrelevant and thermally meaningless in this run — nominal air is correct per the §2 gap rule.
+
+### 8.2 Pinned reference values
+
+| Quantity | Value | Verifies |
+|---|---|---|
+| Rfvis, face-on | **0.15252** (JSON routVis 0.1525, ±0.002) | Optical standard + `direct_direct` convention match the configuration that produced all reference data |
+| Rfvis at θ = 60°, φ = 0° | **≈ 0.279** | θ-unit convention (degrees, not radians) — §5.1 |
+| extLab, face-on | (46.11, −6.60, −0.55) | Lab observer/illuminant consistency; Stage B hex unit test target `#60716E` |
+| transLab, face-on | (82.88, −5.61, 4.55) | Same; Stage B hex unit test target `#C7D1C6` |
+
+### 8.3 Gate behavior
+
+Both Rfvis checks (8.2 rows 1–2) must pass before any production anchor is processed. A fixture failure means the pyWinCalc environment (standard file, convention, units, or API usage) — not the anchor data — is wrong; halt and diagnose rather than running 77 anchors under an unproven setup. Write the fixture results to `run_log.txt` as the first entries.
+
+### 8.4 Interpretive caveat for the angular validation
+
+The canonical 10-stop curve (§5.4) was measured on this ECLAZ stack. The exhaustive 77-anchor sweep (§3.3) is precisely the test of whether that curve *shape* transfers to the production coating families. If a family clusters in `DOCUMENTED` or `FLAGGED`, the most likely cause is ECLAZ's angular character not generalizing to that family — the designed remedy is the per-anchor measured-curve exception path, not a re-derivation of the formula.
