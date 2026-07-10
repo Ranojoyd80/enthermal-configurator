@@ -1078,26 +1078,11 @@ function updatePlusVigCoatings(){
   updatePlusSurfaces();
 }
 
-function updatePlusSurfaces(){
-  var filtered=filterPlusData();
-  var vc=plusVigCoatingEl.value;
-  if(!vc){updatePlusResults();return}
-  filtered=filtered.filter(function(d){return d.secondCoating===vc});
-  var isOutboard=document.getElementById('posToggleInput').checked;
-  if(isOutboard){
-    document.getElementById('plusSrf5').checked=true;
-    updatePlusResults();
-    return;
-  }
-  var validSurfaces=unique(filtered.map(function(d){return d.secondSurface}));
-  var currentSrf=document.querySelector('input[name="plusCoatingSurface"]:checked');
-  var currentVal=currentSrf?currentSrf.value:'';
-  if(!validSurfaces.includes(currentVal)){
-    if(validSurfaces.includes('S4'))document.getElementById('plusSrf4').checked=true;
-    else if(validSurfaces.includes('S5'))document.getElementById('plusSrf5').checked=true;
-  }
-  updatePlusResults();
-}
+// updatePlusSurfaces is DEFINED inside the S4/S5 toggle IIFE further down — it
+// needs the toggle's DOM refs to enable/disable it and force its value. Declared
+// here so the cascade reads in order (same idiom as syncStdToggle). Do not add a
+// function by this name here; it would be silently replaced at load.
+var updatePlusSurfaces;
 
 // ── Outboard-mode cascade ──
 // Cascade structure:
