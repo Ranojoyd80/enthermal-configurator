@@ -748,11 +748,17 @@ function clearResults(){
 function updateResults(){const match=findMatch();if(!getVal('outerThickness')||!outerCoatingEl.value||!getVal('innerThickness')){clearResults();return}
 if(!match){clearResults();return}
 setAnchorImages(match.cid);
-// Auto-flip toggle to match the config's CEN availability
+// Standard toggle: default to the config's standard (CEN if available, else
+// NFRC); a manual flip is kept for the current view. No CEN data → NFRC,
+// genuinely locked (disabled blocks keyboard flips too).
 var stdInput=document.getElementById('stdToggleInput');
 var stdToggleEl=document.getElementById('stdToggle');
-stdInput.checked=!!match.cen;syncStdToggle();
-stdToggleEl.classList.toggle('locked',true);
+if(stdUserFlip){stdUserFlip=false}
+else{stdInput.checked=!!match.cen}
+if(!match.cen)stdInput.checked=false;
+stdInput.disabled=!match.cen;
+syncStdToggle();
+stdToggleEl.classList.toggle('locked',!match.cen);
 var cenActive=stdInput.checked;
 var uSI=cenActive&&match.uvalCEN!=null?match.uvalCEN:match.uval;
 document.getElementById('metricU').textContent=uSI.toFixed(3);
@@ -1135,11 +1141,17 @@ function updatePlusResults(surfaceOnly){
   var match=findPlusMatch();
   if(!match){['metricU','metricUIP','metricR','metricSHGC','metricTvis','metricRoutVis','metricTdw','metricRw','metricTuv'].forEach(id=>document.getElementById(id).textContent='—');document.getElementById('summaryText').textContent='Select a product to view results.';document.getElementById('colorViewTitle').textContent='Exterior Appearance';return}
   setAnchorImages(match.cid);
-  // Auto-flip toggle to match the config's CEN availability
+  // Standard toggle: default to the config's standard (CEN if available, else
+  // NFRC); a manual flip is kept for the current view. No CEN data → NFRC,
+  // genuinely locked (disabled blocks keyboard flips too).
   var stdInput=document.getElementById('stdToggleInput');
   var stdToggleEl=document.getElementById('stdToggle');
-  stdInput.checked=!!match.cen;syncStdToggle();
-  stdToggleEl.classList.toggle('locked',true);
+  if(stdUserFlip){stdUserFlip=false}
+  else{stdInput.checked=!!match.cen}
+  if(!match.cen)stdInput.checked=false;
+  stdInput.disabled=!match.cen;
+  syncStdToggle();
+  stdToggleEl.classList.toggle('locked',!match.cen);
   var cenActive=stdInput.checked;
   var uSI=cenActive&&match.uvalCEN!=null?match.uvalCEN:match.uval;
   document.getElementById('metricU').textContent=uSI.toFixed(3);
@@ -1324,6 +1336,9 @@ plusVigCoatingEl.addEventListener('change',function(){
 // Called from updateResults / updatePlusResults after auto-flipping, and
 // on manual user toggle.
 var syncStdToggle;
+// Set by the std-toggle change listener so the update fns keep the user's
+// manual flip instead of re-applying the config default.
+var stdUserFlip=false;
 (function(){
   var toggle=document.getElementById('stdToggle');
   var input=document.getElementById('stdToggleInput');
@@ -1342,6 +1357,7 @@ var syncStdToggle;
   };
   input.addEventListener('change',function(){
     syncStdToggle();
+    stdUserFlip=true;
     var isPlus=document.getElementById('configEnthPlus').style.display!=='none';
     if(isPlus){updatePlusResults()}else{updateResults()}
   });
