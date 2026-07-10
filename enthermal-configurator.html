@@ -812,6 +812,38 @@ function refreshMetricMuted(){
     if(el.parentElement){el.parentElement.classList.toggle('metric-muted',muted);}
   });
 }
+// Shared metric row for both tabs: the standard toggle (CEN default, manual
+// flip kept, hard-lock when no CEN data) + the seven common metrics. The
+// tab-specific metrics (OITC/Rw, IGU weight, embodied carbon) and the fade/
+// mute pass stay in the callers so they run AFTER every metric write.
+// Returns cenActive for the callers' tab-specific decisions.
+function renderCoreMetrics(match){
+  var stdInput=document.getElementById('stdToggleInput');
+  var stdToggleEl=document.getElementById('stdToggle');
+  if(stdUserFlip){stdUserFlip=false}
+  else{stdInput.checked=!!match.cen}
+  if(!match.cen)stdInput.checked=false;
+  stdInput.disabled=!match.cen;
+  syncStdToggle();
+  stdToggleEl.classList.toggle('locked',!match.cen);
+  var cenActive=stdInput.checked;
+  var uSI=cenActive&&match.uvalCEN!=null?match.uvalCEN:match.uval;
+  document.getElementById('metricU').textContent=uSI.toFixed(3);
+  document.getElementById('metricUIP').textContent=cenActive?'—':match.uvalIP.toFixed(3);
+  document.getElementById('metricR').textContent=cenActive?'—':match.rval.toFixed(1);
+  var shgcVal=cenActive&&match.gFactor!=null?match.gFactor:match.shgc;
+  document.getElementById('metricSHGC').textContent=shgcVal.toFixed(3);
+  document.getElementById('metricTvis').innerHTML=(match.tvis*100).toFixed(1)+'<span style="font-size:50%">%</span>';
+  document.getElementById('metricRoutVis').innerHTML=(match.routVis*100).toFixed(1)+'<span style="font-size:50%">%</span>';
+  document.getElementById('metricTuv').innerHTML=(match.tuv*100).toFixed(1)+'<span style="font-size:50%">%</span>';
+  return cenActive;
+}
+// Run after ALL metric writes (incl. tab-specific OITC/Rw): fade animation
+// (callers skip it for in-place surface flips) + muted-styling pass.
+function finishMetricsRender(fade){
+  if(fade){document.querySelectorAll('.metric-value').forEach(function(el){el.classList.remove('fade-in');void el.offsetWidth;el.classList.add('fade-in')})}
+  refreshMetricMuted();
+}
 function clearResults(){
   ['metricU','metricUIP','metricR','metricSHGC','metricTvis','metricRoutVis','metricTdw','metricRw','metricTuv'].forEach(id=>document.getElementById(id).textContent='—');
   document.getElementById('summaryText').textContent='Select a product to view results.';
@@ -827,26 +859,7 @@ function clearResults(){
 function updateResults(){const match=findMatch();if(!getVal('outerThickness')||!outerCoatingEl.value||!getVal('innerThickness')){clearResults();return}
 if(!match){clearResults();return}
 setAnchorImages(match.cid);
-// Standard toggle: default to the config's standard (CEN if available, else
-// NFRC); a manual flip is kept for the current view. No CEN data → NFRC,
-// genuinely locked (disabled blocks keyboard flips too).
-var stdInput=document.getElementById('stdToggleInput');
-var stdToggleEl=document.getElementById('stdToggle');
-if(stdUserFlip){stdUserFlip=false}
-else{stdInput.checked=!!match.cen}
-if(!match.cen)stdInput.checked=false;
-stdInput.disabled=!match.cen;
-syncStdToggle();
-stdToggleEl.classList.toggle('locked',!match.cen);
-var cenActive=stdInput.checked;
-var uSI=cenActive&&match.uvalCEN!=null?match.uvalCEN:match.uval;
-document.getElementById('metricU').textContent=uSI.toFixed(3);
-document.getElementById('metricUIP').textContent=cenActive?'—':match.uvalIP.toFixed(3);
-document.getElementById('metricR').textContent=cenActive?'—':match.rval.toFixed(1);
-var shgcVal=cenActive&&match.gFactor!=null?match.gFactor:match.shgc;
-document.getElementById('metricSHGC').textContent=shgcVal.toFixed(3);
-document.getElementById('metricTvis').innerHTML=(match.tvis*100).toFixed(1)+'<span style="font-size:50%">%</span>';
-document.getElementById('metricRoutVis').innerHTML=(match.routVis*100).toFixed(1)+'<span style="font-size:50%">%</span>';
+var cenActive=renderCoreMetrics(match);
 var outerLayer=match.glass[0],innerLayer=match.glass[1];
 var eOuterMM=outerLayer.thickness,eInnerMM=innerLayer.thickness;
 var eAcoustic=ENTHERMAL_ACOUSTIC[acousticKey(eOuterMM,eInnerMM)];
@@ -854,9 +867,7 @@ document.getElementById('metricTdw').textContent=(eAcoustic&&!cenActive)?eAcoust
 document.getElementById('metricRw').textContent=(eAcoustic&&cenActive)?eAcoustic.rw:'—';
 document.getElementById('csIGUWeight').textContent=iguWeight(eOuterMM+eInnerMM);
 document.getElementById('csECarbon').textContent=embodiedCarbon(eOuterMM+eInnerMM,cenActive);
-document.getElementById('metricTuv').innerHTML=(match.tuv*100).toFixed(1)+'<span style="font-size:50%">%</span>';
-document.querySelectorAll('.metric-value').forEach(el=>{el.classList.remove('fade-in');void el.offsetWidth;el.classList.add('fade-in')});
-refreshMetricMuted();
+finishMetricsRender(true);
 var outerPx=Math.round(eOuterMM*3),innerPx=Math.round(eInnerMM*3);
 var outer=document.getElementById('csPaneOuter'),inner=document.getElementById('csPaneInner');
 outer.style.width=outerPx+'px';
@@ -1207,39 +1218,18 @@ function updatePlusResults(surfaceOnly){
   var match=findPlusMatch();
   if(!match){['metricU','metricUIP','metricR','metricSHGC','metricTvis','metricRoutVis','metricTdw','metricRw','metricTuv'].forEach(id=>document.getElementById(id).textContent='—');document.getElementById('summaryText').textContent='Select a product to view results.';document.getElementById('colorViewTitle').textContent='Exterior Appearance';return}
   setAnchorImages(match.cid);
-  // Standard toggle: default to the config's standard (CEN if available, else
-  // NFRC); a manual flip is kept for the current view. No CEN data → NFRC,
-  // genuinely locked (disabled blocks keyboard flips too).
-  var stdInput=document.getElementById('stdToggleInput');
-  var stdToggleEl=document.getElementById('stdToggle');
-  if(stdUserFlip){stdUserFlip=false}
-  else{stdInput.checked=!!match.cen}
-  if(!match.cen)stdInput.checked=false;
-  stdInput.disabled=!match.cen;
-  syncStdToggle();
-  stdToggleEl.classList.toggle('locked',!match.cen);
-  var cenActive=stdInput.checked;
-  var uSI=cenActive&&match.uvalCEN!=null?match.uvalCEN:match.uval;
-  document.getElementById('metricU').textContent=uSI.toFixed(3);
-  document.getElementById('metricUIP').textContent=cenActive?'—':match.uvalIP.toFixed(3);
-  document.getElementById('metricR').textContent=cenActive?'—':match.rval.toFixed(1);
-  var shgcVal=cenActive&&match.gFactor!=null?match.gFactor:match.shgc;
-  document.getElementById('metricSHGC').textContent=shgcVal.toFixed(3);
-  document.getElementById('metricTvis').innerHTML=(match.tvis*100).toFixed(1)+'<span style="font-size:50%">%</span>';
-  document.getElementById('metricRoutVis').innerHTML=(match.routVis*100).toFixed(1)+'<span style="font-size:50%">%</span>';
+  var cenActive=renderCoreMetrics(match);
   document.getElementById('metricTdw').textContent='—';document.getElementById('metricRw').textContent='—';
   var pOuterMM=match.glass[0].thickness,pMiddleMM=match.glass[1].thickness,pInnerMM=match.glass[2].thickness;
   document.getElementById('csIGUWeight').textContent=iguWeight(pOuterMM+pMiddleMM+pInnerMM);
   document.getElementById('csECarbon').textContent='—';
-  document.getElementById('metricTuv').innerHTML=(match.tuv*100).toFixed(1)+'<span style="font-size:50%">%</span>';
   document.getElementById('csThicknessValPlus').textContent=match.totalThickness.toFixed(1)+' mm';
   var gasLayer=match.stack.find(function(l){return l.type==='gas'});
   if(gasLayer){
     var gasName=gasLayer.gasType==='Air'?'Air':'Argon';
     document.getElementById('csPlusArgonLabel').textContent=gasLayer.thickness.toFixed(2)+' mm '+gasName+' Gap';
   }
-  if(!surfaceOnly){document.querySelectorAll('.metric-value').forEach(function(el){el.classList.remove('fade-in');void el.offsetWidth;el.classList.add('fade-in')})}
-  refreshMetricMuted();
+  finishMetricsRender(!surfaceOnly);
   var isOutboard=document.getElementById('posToggleInput').checked;
   // S2: bare coating name for clear lites (keeps the summary short), but
   // "… on Solargray" etc. for tinted ones so the substrate is still named.
