@@ -906,7 +906,9 @@ document.querySelectorAll('.product-tab').forEach(tab=>{tab.addEventListener('cl
   document.getElementById('csEnthermal').style.display=isPlus?'none':'flex';
   document.getElementById('csEnthPlus').style.display=isPlus?'flex':'none';
   if(isPlus){
-    if(!plusInitialized&&dataLoaded){initPlusConfig();document.getElementById('plusSrf4').checked=true;var pCoat366=Array.from(plusOuterCoatingEl.options).find(function(o){return o.value==='C366|Clear'});if(pCoat366){plusOuterCoatingEl.value=pCoat366.value;updatePlusVigCoatings();var vCoat366=Array.from(plusVigCoatingEl.options).find(function(o){return o.value.includes('366')});if(vCoat366){plusVigCoatingEl.value=vCoat366.value}}updatePlusSurfaces();plusInitialized=true}
+    // First open: seed via the same function the placement toggle uses, so
+    // there is exactly one definition of the Plus default state.
+    if(!plusInitialized&&dataLoaded){seedPlusInboardDefaults();plusInitialized=true}
     updatePlusResults();requestAnimationFrame(function(){repositionPlusToggles()});
   }else{
     updateResults();requestAnimationFrame(function(){centerCrossSection()});
