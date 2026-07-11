@@ -23,14 +23,14 @@ Host as a static site on any static host — S3 + CloudFront, Netlify, Vercel, G
 ```
 / (deploy root or subpath)
 ├── enthermal-configurator.html   ← entry point
+├── index.html                    ← redirect stub so the root URL loads the app
 └── App_Data/
     ├── enthermal.json
     ├── enthermal-plus-inboard.json
     ├── enthermal-plus-outboard.json
     └── Anchor_Renders/
-        ├── Clear/      anchor_00.webp … anchor_136.webp   ← per-config exterior renders
-        ├── Overcast/   anchor_00.webp … anchor_136.webp      (137 anchors × 3 skies = 411)
-        └── Cloudy/     anchor_00.webp … anchor_136.webp
+        ├── Overcast/     anchor_01.webp … anchor_202.webp   ← per-config exterior renders (default sky)
+        └── PartlyClear/  anchor_01.webp … anchor_202.webp      (202 anchors × 2 skies = 404)
 ```
 
 ---
@@ -50,24 +50,24 @@ Loads "Plus Jakarta Sans" and "DM Sans" from the Google Fonts CDN. If a strict C
 
 ## Performance notes
 
-The full deploy is **~643 MB**, dominated by the render library — but **first load is
-small**: the JSON (~6.5 MB) plus the single default render. Each anchor render is fetched
-on demand (the current config × active sky), so a session pulls only a handful of images,
-each cached after first view.
+The full deploy is **~675 MB**, dominated by the render library — but **first load is
+small**: the JSON (~6 MB) plus a handful of renders (the default view, and the app
+background-preloads the other sky variant and each tab's default render — roughly
+5 images / ~8 MB total). Other anchor renders are fetched on demand (the current
+config × active sky), each cached after first view.
 
 | Asset | Size |
 |---|---|
-| `enthermal-plus-inboard.json` | ~4.5 MB |
-| `enthermal-plus-outboard.json` | ~1.9 MB |
-| Anchor renders (137 anchors × 3 skies, `.webp`) | **~637 MB total** (~1.6 MB each, 411 files) — loaded one at a time on demand |
+| `enthermal-plus-inboard.json` | ~4.2 MB |
+| `enthermal-plus-outboard.json` | ~1.8 MB |
+| Anchor renders (202 anchors × 2 skies, `.webp`) | **~668 MB total** (~1.65 MB each, 404 files) — loaded on demand |
 | `enthermal.json` | ~71 KB |
-| `enthermal-configurator.html` | ~104 KB |
+| `enthermal-configurator.html` | ~125 KB |
 
 Recommendations:
 - **Enable gzip/Brotli compression** for the JSON and HTML (compresses ~80–90%, cutting ~6 MB to well under 1 MB). WebP is already compressed — don't expect further gain there.
-- **The render library is large (~637 MB).** Consider a recompression pass on the high-res WebP, and/or hosting the renders on a CDN/separate assets repo if you approach a host's storage or bandwidth limit (e.g. GitHub Pages' 1 GB soft cap). See `Data_Pipeline/3_Clustering/CLUSTERING_PROCEDURE.md` Part 2.
-- **Set sensible Cache-Control headers** on the `App_Data/` and render assets (they change infrequently).
-- **Optimize the PNGs** if first-load performance matters (WebP conversion / resizing) — they're large and uncompressed.
+- **The render library is large (~668 MB).** Consider a recompression pass on the high-res WebP, and/or hosting the renders on a CDN/separate assets repo if you approach a host's storage or bandwidth limit (e.g. GitHub Pages' 1 GB soft cap). See `Data_Pipeline/3_Clustering/CLUSTERING_PROCEDURE.md` Part 2.
+- **Set sensible Cache-Control headers** on the `App_Data/` and render assets (they change infrequently, and every render URL carries a content-derived `?v=` cache-buster that changes when a render batch is replaced — so long max-age is safe).
 
 ---
 
@@ -82,10 +82,13 @@ Recommendations:
 
 ## Local preview (for testing before deploy)
 
-From the project folder, run any static server, e.g.:
+From the project folder, run:
 
 ```
-python -m http.server 8000
+python serve.py
 ```
 
-Then open `http://localhost:8000/enthermal-configurator.html`.
+Then open `http://localhost:8000/enthermal-configurator.html`. (`serve.py` wraps
+Python's built-in `http.server` and adds `Cache-Control: no-store`, so a normal
+reload always shows the latest files during development — see `HOW-TO-RUN.txt`.
+Plain `python -m http.server 8000` also works but caches aggressively.)

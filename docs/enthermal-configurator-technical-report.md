@@ -44,14 +44,14 @@ All data is sourced from LBNL Windows 7 / PyWinCalc calculations and cross-check
 ### File Structure
 
 ```
-enthermal-configurator.html    — ~104 KB (1,515 lines)
+enthermal-configurator.html    — ~125 KB
 ├── <style>     — CSS (design tokens + component styles)
 ├── <body>      — semantic HTML
 └── <script>    — named functions + IIFEs (vanilla ES6)
 
 App_Data/
 ├── enthermal.json             — 98 Enthermal configs (~73 KB)
-├── enthermal-plus-inboard.json — 4,470 Plus Inboard configs (~4.4 MB)
+├── enthermal-plus-inboard.json — 4,470 Plus Inboard configs (~4.2 MB)
 ├── enthermal-plus-outboard.json — 1,876 Plus Outboard configs (~1.8 MB)
 └── Anchor_Renders/
     ├── Overcast/     anchor_01.webp … anchor_202.webp  — per-config exterior renders (default)
@@ -266,8 +266,8 @@ Each record contains a `stack` array of layers plus performance metrics:
 
 ### Color Rendering (current state)
 
-The **Exterior Color** card shows a **per-configuration photoreal render** with a
-Clear / Overcast / Cloudy weather toggle and a zoom lightbox. Each config carries an
+The **Exterior Appearance** card shows a **per-configuration photoreal render** with an
+Overcast / Partly Clear weather toggle (default Overcast) and a zoom lightbox. Each config carries an
 integer `cid` (anchor id) injected into the JSON by the clustering script, and
 `setAnchorImages(cid)` points the card at
 `App_Data/Anchor_Renders/<Sky>/anchor_<cid>.webp`. The 6,444 configs collapse to
@@ -275,8 +275,17 @@ integer `cid` (anchor id) injected into the JSON by the clustering script, and
 image is imperceptibly close to — and the same hue family as — the exact selection.
 The earlier runtime `labToRgb()` Lab→sRGB gradient renderer (and the flip /
 Lab-readout UI), and the interim static `*_Set3.png` placeholder sky, have both been
-removed. A disclaimer below the image reminds users that screen colors are not a
-substitute for a mock-up.
+removed. A disclaimer below the image notes that on-screen color is representational
+and varies with display, and that final color should be confirmed with physical samples.
+
+The render panel is a four-state machine (`setRenderState`: `image` / `loading` /
+`cleared` / `unavailable`): a first-time download shows a neutral "Loading exterior
+render…" panel, a cleared selection shows its own neutral prompt, and the
+"unavailable" wording is reserved for an actual image error or a config with no
+`cid`. While a render is already on screen, config changes swap silently (the
+previous render stays up until the new one loads). The app background-preloads the
+inactive sky variant on every config change and each tab's default render (both
+skies) at startup, so first tab switches and sky flips are near-instant.
 
 The per-config CIE L\*a\*b\* values (`extL/A/B`, `intL/A/B`) remain in the data and
 drive the JND color clustering that assigns each config its `cid` (see

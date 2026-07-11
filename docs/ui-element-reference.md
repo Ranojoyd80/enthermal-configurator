@@ -198,7 +198,7 @@ The pane reordering uses CSS flex `order`; the substrate tint and spacer callout
 
 ---
 
-## Color Card (Exterior Color)
+## Color Card (Exterior Appearance)
 
 The card shows a **per-configuration photoreal render** with a weather toggle and a
 zoom lightbox — not a computed Lab→RGB gradient. The config's `cid` selects the image
@@ -208,18 +208,20 @@ zoom lightbox — not a computed Lab→RGB gradient. The config's `cid` selects 
 
 | Element | Description | CSS / ID |
 |---------|-------------|----------|
-| Card Header | "Exterior Color" (static) | `#colorViewTitle` |
-| Sky Toggle | Pill toggle: Clear / Overcast / Cloudy weather backdrop | `#skyToggle`, `.sky-toggle-option[data-img]` |
+| Card Header | "Exterior Appearance" (static) | `#colorViewTitle` |
+| Sky Toggle | Pill toggle: Overcast / Partly Clear sky backdrop (default Overcast; folder from `data-folder`) | `#skyToggle`, `.sky-toggle-option[data-img]` |
 | Toggle Thumb | Teal sliding pill behind the active option | `#skyThumb` |
-| Render Image | The per-config render (`Anchor_Renders/<Sky>/anchor_<cid>.webp`); `src` set per config and swaps with the toggle, default Overcast | `#colorRenderImg` |
-| Zoom Button | Magnifier button to open the lightbox | `#colorZoomBtn` |
-| Zoom Lightbox | Full-screen overlay; prev/next or ←/→ step through the three sky conditions | `#imgZoomOverlay`, `#imgZoomFull`, `#imgZoomPrev`, `#imgZoomNext`, `#imgZoomClose` |
+| Render Image | The per-config render (`Anchor_Renders/<Sky>/anchor_<cid>.webp`); `src` set per config and swaps with the toggle | `#colorRenderImg` |
+| Fallback Panel | Replaces the image when it can't be shown — `setRenderState`: "Loading exterior render…" (in-flight download with nothing else on screen), "Select a product…" (cleared selection), "Exterior render unavailable…" (image error / missing `cid`). While a render is showing, config changes swap silently. | `#colorRenderFallback` |
+| Zoom Button | Magnifier button to open the lightbox (hidden whenever the fallback panel is shown) | `#colorZoomBtn` |
+| Zoom Lightbox | Full-screen overlay; prev/next or ←/→ step through the two sky conditions | `#imgZoomOverlay`, `#imgZoomFull`, `#imgZoomPrev`, `#imgZoomNext`, `#imgZoomClose` |
+| Disclaimer Note | "On-screen color is representational and varies with display. Confirm final color with physical samples." | italic caption under the image |
 
 ---
 
 ## CEN Mode Behavior
 
-The CEN/NFRC toggle **auto-flips** based on the matched data row's `cen` field and is always **locked** (user cannot manually override). CEN-enabled coatings: LUMI (ECLAZ II), ZEN (ECLAZ ONE II), SKN183 (COOL-LITE SKN 183 II), XTR6129 (COOL-LITE XTREME 61-29 II).
+The CEN/NFRC toggle **defaults** from the matched data row's `cen` field on every row change. On CEN-capable rows the toggle is **enabled** and the user may flip it freely (a manual flip survives same-row re-renders via `stdUserFlip`); on non-CEN rows it is **disabled and forced to NFRC**. CEN capability follows the maker-set rule: a Saint-Gobain coating present AND no Vitro coating (e.g. LUMI/ECLAZ II, ZEN/ECLAZ ONE II, SKN183, XTR6129).
 
 When CEN is active:
 - U-value (SI) displays `uvalCEN` instead of `uval`

@@ -7,7 +7,7 @@
 
 ## 1. Architecture — Non-Negotiable Constraints
 
-- **Single HTML file for all code.** All application code lives in one `.html` file (~104 KB) — all CSS in a `<style>` block, all JS in a `<script>` block. There are no external CSS or JS files.
+- **Single HTML file for all code.** All application code lives in one `.html` file (~125 KB) — all CSS in a `<style>` block, all JS in a `<script>` block. There are no external CSS or JS files.
 - **Data lives in external JSON.** Product data is split into three files in `App_Data/` (`enthermal.json`, `enthermal-plus-inboard.json`, `enthermal-plus-outboard.json`) and loaded at runtime via `fetch()`. The data is *not* embedded in the HTML. Because of the `fetch()` calls, the app **must be served over HTTP(S)** — opening it via `file://` loads blank. See [HOW-TO-RUN.txt](HOW-TO-RUN.txt) and [HOSTING.md](HOSTING.md).
 - **Zero dependencies.** No React, no Tailwind, no npm, no build step (the CSV→JSON Python script in `Data_Pipeline/` is a data-prep tool, not a frontend build step). The only external runtime resource is Google Fonts CDN.
 - **Vanilla stack only.** HTML5, CSS3, JavaScript ES6. No frameworks, no libraries, no transpilation.
