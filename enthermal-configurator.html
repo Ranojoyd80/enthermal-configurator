@@ -1288,28 +1288,44 @@ function updatePlusS5CoatingOutboard(){
   updatePlusResults();
 }
 function seedPlusOutboardDefaults(){
-  var vSel=document.getElementById('plusVigThickness');
-  Array.from(vSel.options).forEach(function(opt){opt.disabled=false});
-  if(Array.from(vSel.options).some(function(o){return o.value==='5/5'}))vSel.value='5/5';
-  updatePlusS2CoatingOutboard();
-  updatePlusInboardThicknessOutboard();
-  var coat366=Array.from(plusVigCoatingEl.options).find(function(o){return o.value===DEFAULT_COATING});
-  if(coat366&&plusVigCoatingEl.value!==coat366.value){
-    plusVigCoatingEl.value=coat366.value;
-    updatePlusResults();
-  }
+  plusSeeding=true;
+  try{
+    var vSel=document.getElementById('plusVigThickness');
+    Array.from(vSel.options).forEach(function(opt){opt.disabled=false});
+    if(Array.from(vSel.options).some(function(o){return o.value==='5/5'}))vSel.value='5/5';
+    updatePlusS2CoatingOutboard();
+    updatePlusInboardThicknessOutboard();
+    var coat366=Array.from(plusVigCoatingEl.options).find(function(o){return o.value===DEFAULT_COATING});
+    if(coat366&&plusVigCoatingEl.value!==coat366.value){
+      plusVigCoatingEl.value=coat366.value;
+      updatePlusResults();
+    }
+  }finally{plusSeeding=false}
 }
+// While a seed function is rebuilding the Plus dropdowns, updatePlusResults
+// fires in transient half-seeded states (e.g. outer coating set, VIG coating
+// still empty). Its clearResults early-returns would hide the render that is
+// already on screen, so the eventual setAnchorImages call finds nothing
+// showing and drops to the loading panel instead of the intended silent swap
+// (visible on a cold cache: first Plus tab open showed "Loading exterior
+// render…" over nothing instead of keeping the Enthermal facade). The flag
+// suppresses only those transient clears; the post-seed updatePlusResults
+// runs with the flag down, so a genuinely unresolvable selection still clears.
+var plusSeeding=false;
 function seedPlusInboardDefaults(){
-  initPlusConfig();
-  document.getElementById('plusSrf4').checked=true;
-  var pCoat366=Array.from(plusOuterCoatingEl.options).find(function(o){return o.value===DEFAULT_COMBO});
-  if(pCoat366){
-    plusOuterCoatingEl.value=pCoat366.value;
-    updatePlusVigThickness();
-    var vCoat366=Array.from(plusVigCoatingEl.options).find(function(o){return o.value===DEFAULT_COATING});
-    if(vCoat366)plusVigCoatingEl.value=vCoat366.value;
-  }
-  updatePlusSurfaces();
+  plusSeeding=true;
+  try{
+    initPlusConfig();
+    document.getElementById('plusSrf4').checked=true;
+    var pCoat366=Array.from(plusOuterCoatingEl.options).find(function(o){return o.value===DEFAULT_COMBO});
+    if(pCoat366){
+      plusOuterCoatingEl.value=pCoat366.value;
+      updatePlusVigThickness();
+      var vCoat366=Array.from(plusVigCoatingEl.options).find(function(o){return o.value===DEFAULT_COATING});
+      if(vCoat366)plusVigCoatingEl.value=vCoat366.value;
+    }
+    updatePlusSurfaces();
+  }finally{plusSeeding=false}
 }
 
 function findPlusMatch(){
@@ -1327,9 +1343,9 @@ function findPlusMatch(){
   return filtered[0]||null;
 }
 function updatePlusResults(surfaceOnly){
-  if(!plusOuterCoatingEl.value||!plusVigCoatingEl.value){clearResults();return}
+  if(!plusOuterCoatingEl.value||!plusVigCoatingEl.value){if(!plusSeeding)clearResults();return}
   var match=findPlusMatch();
-  if(!match){clearResults();return}
+  if(!match){if(!plusSeeding)clearResults();return}
   setAnchorImages(match.cid);
   var cenActive=renderCoreMetrics(match);
   document.getElementById('metricTdw').textContent='—';document.getElementById('metricRw').textContent='—';
