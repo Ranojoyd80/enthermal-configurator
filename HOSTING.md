@@ -46,6 +46,15 @@ Because of the `fetch()` calls, browsers block data loading over the `file://` p
 ### 3. Only external dependency: Google Fonts
 Loads "Plus Jakarta Sans" and "DM Sans" from the Google Fonts CDN. If a strict Content-Security-Policy is in place, allowlist `fonts.googleapis.com` and `fonts.gstatic.com`, or typography falls back to system fonts.
 
+### 4. File and folder names are case-sensitive on most hosts
+The app was developed on Windows (case-insensitive) and currently runs on GitHub Pages, but most Linux, S3, and CDN origins are case-sensitive. Deploy with the exact casing in the repo — `App_Data`, `Anchor_Renders`, `Overcast`, `PartlyClear`, `anchor_07.webp` — or fetches will 404 and the affected panel silently shows nothing.
+
+### 5. Do NOT run the render images through an image-optimization pass
+The 404 `.webp` renders are **lossless** by design — they are color-accurate product renderings validated against physical glass samples. Automatic asset optimizers (Cloudflare Polish, imgix, build-time image plugins, "serve as lossy WebP/AVIF" CDN features) must be **disabled** for `App_Data/Anchor_Renders/`. Recompressing them lossily visibly shifts the exterior colors the tool exists to show.
+
+### 6. Do NOT strip or rewrite query strings on asset URLs
+Every render URL carries a content-derived `?v=<hash>` cache-buster (maintained automatically by a pre-commit hook). CDNs or optimizers that "normalize" URLs by dropping query strings — or that cache while ignoring them — will serve stale images after a render batch is replaced. Query strings must pass through to the origin and be part of the cache key.
+
 ---
 
 ## Performance notes
