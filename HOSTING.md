@@ -11,6 +11,7 @@ The **LuxWall Enthermal™ Product Configurator** — a client-side technical sa
 - **Stack:** Vanilla HTML5 / CSS3 / JavaScript (ES6). No React, no build step, no npm, no server-side code.
 - **Backend:** None required. This is a fully static site.
 - **State:** No login, cookies, `localStorage`, analytics, or user-data collection. All data is read-only reference data shipped with the app.
+- **Known placeholder:** the **"Download Configuration" button is intentionally disabled** — the report format it will generate is still being designed. It is not a bug and needs no hosting-side work; it will be wired up in a later app update.
 
 ---
 
